@@ -3,9 +3,11 @@ import threading
 import logging
 from pymodbus.client import AsyncModbusTcpClient
 import asyncio
+from typing import Union
+import paho.mqtt.client as mqtt
+
 
 from .utils import *
-import paho.mqtt.client as mqtt
 
 
 
@@ -172,7 +174,7 @@ class ModbusAcq:
 
 
     def __init__(self, config: UserConfig, 
-                 publisher: "MqqtPublisher" | DecisionMaker, 
+                 publisher: Union["MqqtPublisher", DecisionMaker], 
                  acq_time: int = 30):
         """
         config: dictionary from load_json function
