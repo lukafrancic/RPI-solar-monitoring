@@ -4,7 +4,7 @@ import logging
 from pymodbus.client import AsyncModbusTcpClient
 import asyncio
 
-from utils import *
+from .utils import *
 import paho.mqtt.client as mqtt
 
 
@@ -26,7 +26,7 @@ class DecisionMaker:
         self.current_power = 0
         self.last_update = 0
 
-        self.data_logger = logging.getHandlerByName("data_logger")
+        self.data_logger = logging.getLogger("data_logger")
 
         # trackers
         self.current_state = State.STANDBY
@@ -182,8 +182,8 @@ class ModbusAcq:
         self.PV_power = 0
         self.current_load = 0
 
-        self.error_logger = logging.getHandlerByName("error_logger")
-        self.data_logger = logging.getHandlerByName("data_logger")
+        self.error_logger = logging.getLogger("error_logger")
+        self.data_logger = logging.getLogger("data_logger")
 
         self.publisher = publisher
         self.acq_time = acq_time
@@ -335,7 +335,7 @@ class ModbusAcq:
 class MqqtSubscriber:
     def __init__(self, config: MqqtConfig, decision_maker: DecisionMaker):
         self.config = config
-        self.error_logger = logging.getHandlerByName("error_logger")
+        self.error_logger = logging.getLogger("error_logger")
         self.decision_maker = decision_maker
 
         self.client = mqtt.Client()
@@ -375,7 +375,7 @@ class MqqtSubscriber:
 class MqqtPublisher:
     def __init__(self, config: MqqtConfig):
         self.config = config
-        self.error_logger = logging.getHandlerByName("error_logger")
+        self.error_logger = logging.getLogger("error_logger")
 
         self.client = mqtt.Client()
         self.client.on_connect = self.on_connect
@@ -383,7 +383,7 @@ class MqqtPublisher:
 
         self.client.username_pw_set(username=self.config["username"], 
                                     password=self.config["password"])
-        self.client.connect(self.config["ip"], self.config["port"], 300)
+        self.client.connect(self.config["broker_ip"], self.config["port"], 300)
 
 
     def on_connect(self, client, userdata, flags, rc):

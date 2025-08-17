@@ -1,9 +1,12 @@
 from enum import Enum, auto
 from typing import TypedDict
 import json
-import pathlib
+from pathlib import Path
 import logging
+import logging.config
 
+
+CONFIG_DIR = Path(__file__).resolve().parent / "config"
 
 class UserConfig(TypedDict):
     ip : str # inverter IP
@@ -56,8 +59,9 @@ def load_user_config() -> UserConfig:
 
     returns a dict.
     """
-    filename = pathlib.Path("../config/user_config.json")
-    
+    # filename = pathlib.Path(".config/user_config.json")
+    filename = CONFIG_DIR / "user_config.json"
+
     return load_json(filename)
 
 
@@ -68,15 +72,21 @@ def load_mqtt_config() -> MqqtConfig:
 
     returns a dict.
     """
-    filename = pathlib.Path("../config/mqtt_config.json")
+    # filename = pathlib.Path(".config/mqtt_config.json")
+    filename = CONFIG_DIR / "mqtt_config.json"
     
     return load_json(filename)
 
 
 
-def setup_logging():
-    config_file = pathlib.Path("logging_config.json")
+def setup_logging(LOG_DIR):
+    # config_file = pathlib.Path("/config/logging_config.json")
+    # config_file = "/config/logging_config.json"
+    config_file = CONFIG_DIR / "logging_config.json"
     with open(config_file) as file:
         config = json.load(file)
+        
+    config['handlers']['file_err']['filename'] = str(LOG_DIR / 'error.log')
+    config['handlers']['file_data']['filename'] = str(LOG_DIR / 'data.log')
 
     logging.config.dictConfig(config)

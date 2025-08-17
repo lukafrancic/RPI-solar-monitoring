@@ -13,7 +13,7 @@ __pypackages__/
 .venv
 
 # User configs
-config/mqtt_config.json
+lib/config/mqtt_config.json
 
 # logs
 publisher_pi/logs/
