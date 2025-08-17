@@ -10,10 +10,10 @@ async def main():
     LOG_DIR.mkdir(exist_ok=True)
     setup_logging(LOG_DIR)
 
-    mqtt_config = load_mqtt_config()
-    publisher = MqqtPublisher(mqtt_config)
+    user_config = load_user_config()
+    publisher = DecisionMaker(user_config)
     publisher.start_loop()
-    
+
     user_config = load_user_config()
     data_acq = ModbusAcq(user_config, publisher)
 

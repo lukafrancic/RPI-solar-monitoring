@@ -13,6 +13,8 @@ if __name__ == "__main__":
     dec_maker = DecisionMaker(user_config)
     dec_maker.start_loop()
 
+    print("starting mqtt")
     mqtt_config = load_mqtt_config()
     subscriber = MqqtSubscriber(mqtt_config, dec_maker)
+    print("subscriber initialized")
     subscriber.loop()

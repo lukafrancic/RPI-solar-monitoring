@@ -6,5 +6,6 @@
     "alarm_timeout": 50,
     "alarm_delay": 60,
     "lower_pow_limit": 4000,
-    "relay_timeout": 300
+    "relay_timeout": 300,
+    "connection_timeout": 300
 }

@@ -122,7 +122,7 @@ class DecisionMaker:
                 pass
     
 
-    def update(self, power_load: int):
+    def update_value(self, power_load: int):
         with self._lock:
             self.current_power = power_load
             self.last_update = time.monotonic()
@@ -171,7 +171,8 @@ class ModbusAcq:
     GRID_SCALE = 210
 
 
-    def __init__(self, config: UserConfig, publisher: "MqqtPublisher", 
+    def __init__(self, config: UserConfig, 
+                 publisher: "MqqtPublisher" | DecisionMaker, 
                  acq_time: int = 30):
         """
         config: dictionary from load_json function
@@ -188,7 +189,7 @@ class ModbusAcq:
         self.publisher = publisher
         self.acq_time = acq_time
 
-
+        
     async def _read_register(self, address: int, count: int = 1) -> list[int]:
         """
         Tries to read registers in a safe way. If it fails an empty list is
@@ -240,15 +241,15 @@ class ModbusAcq:
                 self.data_logger.info(
                     f"{self.PV_power}\t{self.grid_power}\t{self.current_load}")
                 
-                self.publisher.publish(-self.grid_power)
-
+                self.publisher.update_value(-self.grid_power)
+              
             else:
                 self.grid_power = 0
                 self.PV_power = 0
                 self.current_load = 0
                 self.error_logger.warning("No logged values")
             
-            # self.error_logger.debug(f"Load: {self.current_load} W")
+            # self.error_logger.info(f"Load: {self.current_load} W")
         else:
             self.current_load = 0
             self.error_logger.warning("No modbus connection")
@@ -345,26 +346,28 @@ class MqqtSubscriber:
 
         self.client.username_pw_set(username=self.config["username"], 
                                     password=self.config["password"])
-        self.client.connect(self.config["ip"], self.config["port"], 300)
+        self.client.connect(self.config["broker_ip"], self.config["port"], 300)
 
 
     def on_connect(self, client, userdata, flags, rc):
         client.subscribe(self.config["topic"])
-        self.error_logger.debug(f"Connected with result code {str(rc)}")
+        time.sleep(0.5)
+        self.error_logger.info(f"Connected with result code {str(rc)}")
 
 
     def on_message(self, client, userdata, msg):
         self.latest_msg = msg.payload.decode()
-        self.error_logger.debug(f"Received: {self.latest_msg}")
+        self.error_logger.info(f"Received: {self.latest_msg}")
         try:
             power = int(self.latest_msg)
-            self.decision_maker.update(power)
+            self.decision_maker.update_value(power)
+            
         except:
-            self.error_logger.error("Unable to case msg to int!")
+            self.error_logger.error("Unable to cast msg to int!")
 
 
     def on_disconnect(self, client, userdate, rc):
-        self.error_logger.debug(f"Disconnected with result code {str(rc)}")
+        self.error_logger.info(f"Disconnected with result code {str(rc)}")
 
 
     def loop(self):
@@ -388,24 +391,24 @@ class MqqtPublisher:
 
     def on_connect(self, client, userdata, flags, rc):
         client.subscribe(self.config["topic"])
-        self.error_logger.debug(f"Connected with result code {str(rc)}")
+        self.error_logger.info(f"Connected with result code {str(rc)}")
 
 
-    def on_disconnect(self, client, userdate, rc):
-        self.error_logger.debug(f"Disconnected with result code {str(rc)}")
+    def on_disconnect(self, client, userdata, rc):
+        self.error_logger.info(f"Disconnected with result code {str(rc)}")
 
 
-    def publish(self, msg: str, qos: int=2, retain: bool=False):
+    def update_value(self, msg: str, qos: int=2, retain: bool=False):
         ret = self.client.publish(
             self.config["topic"], payload=msg, qos=qos, retain=retain
         )
         if ret.rc == mqtt.MQTT_ERR_SUCCESS:
-            self.error_logger.debug(f"Publisher sent: {msg}")
+            self.error_logger.info(f"Publisher sent: {msg}")
         else:
             self.error_logger.warning(f"Publisher failed: {ret.rc}")
         
 
-    def loop(self):
+    def start_loop(self):
         self.client.loop_start()
 
     
