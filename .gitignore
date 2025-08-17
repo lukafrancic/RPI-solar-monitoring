@@ -1,0 +1,25 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+
+# Jupyter Notebook
+.ipynb_checkpoints
+
+
+# PEP 582; used by e.g. github.com/David-OConnor/pyflow and github.com/pdm-project/pdm
+__pypackages__/
+
+
+# Environments
+.venv
+
+# User configs
+config/mqtt_config.json
+
+# logs
+publisher_pi/logs/
+subscriber_pi/logs/
+
+# dev
+main_old.py
+main_async.py
+mqtt_test.py

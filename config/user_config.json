@@ -1,0 +1,10 @@
+{
+    "ip": "192.168.1.45",
+    "port": 1502,
+    "limit": 5000,
+    "alarm_on_time": 50,
+    "alarm_timeout": 50,
+    "alarm_delay": 60,
+    "lower_pow_limit": 4000,
+    "relay_timeout": 300
+}
