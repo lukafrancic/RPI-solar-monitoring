@@ -7,5 +7,7 @@
     "alarm_delay": 60,
     "lower_pow_limit": 4000,
     "relay_timeout": 300,
-    "connection_timeout": 300
+    "connection_timeout": 300,
+    "alarm_pin": "J8:3",
+    "relay_pins": ["J8:11", "J8:13"]
 }

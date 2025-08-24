@@ -5,7 +5,7 @@ from pymodbus.client import AsyncModbusTcpClient
 import asyncio
 from typing import Union
 import paho.mqtt.client as mqtt
-
+from gpiozero import DigitalOutputDevice
 
 from .utils import *
 
@@ -44,6 +44,45 @@ class DecisionMaker:
         self._thread = None
         self._is_updated = False
 
+        self._initialize_pins()
+
+
+    def _initialize_pins(self):
+        self.relay_pins = []
+        for pin_name in self.config["relay_pins"]:
+            pin = DigitalOutputDevice(pin_name)
+            self.relay_pins.append(pin)
+
+        self.alarm_pin = DigitalOutputDevice(self.config["alarm_pin"])
+        
+
+    def _set_relays(self, state: bool):
+        """
+        The pin logic is inverted. To turn something on, pull the pin LOW.
+        The relays will be mostly set to off to prevent unnecessary heating.
+
+        :param state: turn on or off
+        """
+        if state:
+            for pin in self.relay_pins:
+                pin.off()
+        else:
+            for pin in self.relay_pins:
+                pin.on()
+
+
+    def _set_alarm(self, state: bool):
+        """
+        The pin logic is inverted. To turn something on, pull the pin LOW.
+        The relays will be mostly set to off to prevent unnecessary heating.
+
+        :param state: turn on or off
+        """
+        if state:
+            self.alarm_pin.off()
+        else:
+            self.alarm_pin.on()
+
 
     def _decision_loop(self):
         """
@@ -71,25 +110,28 @@ class DecisionMaker:
        
         match self.current_state:
             case State.STANDBY:
-                # all IO pins on low
                 self.relay_timeout_time = 0
                 self.relay_on_time = 0
                 self.alarm_on_time = 0
                 self.is_relay = False
                 self.is_alarm = False
+                
+                # all relays off (pins go to HIGH)
+                self._set_relays(False)
+                self._set_alarm(False)
 
             case State.RELAY_ON:
-                # turn on relay IO pins
-                # turn alarm IO pins low
                 self.relay_on_time += self.acq_time
                 self.alarm_on_time = 0
                 self.relay_timeout_time = 0
                 self.is_relay = True
                 self.is_alarm = False
+                # turn on relay
+                self._set_relays(True)
+                # turn on alarm
+                self._set_alarm(False)
 
             case State.RELAY_TIMEOUT:
-                # relay IO pins high
-                # alarm IO pins high
                 self.relay_timeout_time += self.acq_time
                 self.relay_on_time += self.acq_time
                 self.alarm_on_time = 0
@@ -98,28 +140,35 @@ class DecisionMaker:
                 # to bi moralo avtomatsko preiti v STANDBY
                 if self.relay_timeout_time > self.config["relay_timeout"]:
                     self.is_relay = False
+                # turn on relay
+                self._set_relays(True)
+                # turn off alarm
+                self._set_alarm(False)
 
             case State.ALARM_ON:
                 self.relay_on_time += self.acq_time
                 self.alarm_on_time += self.acq_time
                 self.relay_timeout_time = 0
-                # relay IO pins high
-                # alarm IO pins high
                 self.is_relay = True
                 self.is_alarm = True
+                # turn on relay
+                self._set_relays(True)
+                # turn on alarm
+                self._set_alarm(True)
 
             case State.ALARM_TIMEOUT:
                 self.relay_on_time += self.acq_time
                 self.alarm_on_time += self.acq_time
                 self.relay_timeout_time = 0
-                # relay IO pins high
-                # alarm IO pins low
                 self.is_relay = True
                 self.is_alarm = True
                 # to bi moralo preiti nazaj v ALARM_ON
                 if self.alarm_on_time >= self.config["alarm_timeout"]:
                     self.alarm_on_time = 0
-
+                # turn on relay
+                self._set_relays(True)
+                # turn off alarm
+                self._set_alarm(False)
             case _:
                 pass
     

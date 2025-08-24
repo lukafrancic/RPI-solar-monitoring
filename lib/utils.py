@@ -18,6 +18,8 @@ class UserConfig(TypedDict):
     lower_pow_limit : int # relay switches back when the power goes lower
     relay_timeout : int  # relays switch after N seconds after going bellow lower lim    
     connection_timeout: int # After N seconds the load value resets to 0 in DecisionMaker
+    alarm_pin: str
+    relay_pins: list[str] # list of pins GPIO pins to use 
 
 
 

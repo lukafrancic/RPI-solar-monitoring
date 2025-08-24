@@ -1,2 +1,4 @@
 pymodbus
 paho-mqtt
+gpiozero
+lgpio
