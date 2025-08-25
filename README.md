@@ -107,3 +107,8 @@ And now simply restart mqqt:
 sudo systemctl restart mosquitto
 ```
 
+# Git updates
+To update the scripts from git use:
+```
+git pull origin main
+```
