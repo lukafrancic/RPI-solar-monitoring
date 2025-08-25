@@ -5,7 +5,8 @@ from lib import *
 
 
 async def main():
-
+    # wait a bit before startup
+    asyncio.sleep(10)
     LOG_DIR = Path(__file__).resolve().parent / "logs"
     LOG_DIR.mkdir(exist_ok=True)
     setup_logging(LOG_DIR)

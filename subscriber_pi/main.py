@@ -1,10 +1,12 @@
 from pathlib import Path
-
+import time
 from lib import *
 
 
 
 if __name__ == "__main__":
+    # wait a bit before startup
+    time.sleep(10)
     LOG_DIR = Path(__file__).resolve().parent / "logs"
     LOG_DIR.mkdir(exist_ok=True)
     setup_logging(LOG_DIR)
