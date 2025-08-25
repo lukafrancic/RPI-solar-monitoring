@@ -10,7 +10,7 @@ if __name__ == "__main__":
     setup_logging(LOG_DIR)
 
     user_config = load_user_config()
-    dec_maker = DecisionMaker(user_config)
+    dec_maker = DecisionMaker(user_config, 10)
     dec_maker.start_loop()
 
     print("starting mqtt")

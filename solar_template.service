@@ -1,0 +1,15 @@
+[Unit]
+Description=My Python Script Service
+After=network.target
+
+[Service]
+ExecStart=/home/pi/RPI-solar-monitoring/start_script.sh
+WorkingDirectory=/home/pi/RPI-solar-monitoring
+StandardOutput=inherit
+StandardError=inherit
+Restart=always
+RestartSec=20
+User=pi
+
+[Install]
+WantedBy=multi-user.target
