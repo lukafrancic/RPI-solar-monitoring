@@ -12,7 +12,7 @@ async def main():
     setup_logging(LOG_DIR)
 
     user_config = load_user_config()
-    publisher = DecisionMaker(user_config)
+    publisher = DecisionMaker(user_config, 5)
     publisher.start_loop()
 
     user_config = load_user_config()
