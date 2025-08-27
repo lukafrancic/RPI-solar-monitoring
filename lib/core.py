@@ -189,11 +189,12 @@ class DecisionMaker:
                 self._decision_loop()
 
                 if self._is_updated:
-                    self.data_logger.info(f"State: {self.current_state}")
                     self._is_updated = False
 
                 if t1 - self.last_update > self.config["connection_timeout"]:
                     self.current_power = 0
+
+                self.data_logger.info(f"State: {self.current_state}")
 
             time.sleep(self.acq_time)
 
