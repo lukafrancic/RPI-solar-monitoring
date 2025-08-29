@@ -3,7 +3,7 @@ Description=My Python Script Service
 After=network.target
 
 [Service]
-ExecStart=/home/pi/RPI-solar-monitoring/start_script.sh
+ExecStart=/home/pi/RPI-Solar-monitoring/start_script.sh
 WorkingDirectory=/home/pi/RPI-solar-monitoring
 StandardOutput=inherit
 StandardError=inherit
