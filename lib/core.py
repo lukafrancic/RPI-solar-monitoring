@@ -293,8 +293,6 @@ class ModbusAcq:
                 self.data_logger.info(
                     f"{self.PV_power}\t{self.grid_power}\t{self.current_load}")
                 
-                self.publisher.update_value(-self.grid_power)
-              
             else:
                 self.grid_power = 0
                 self.PV_power = 0
@@ -303,9 +301,12 @@ class ModbusAcq:
             
             # self.error_logger.info(f"Load: {self.current_load} W")
         else:
+            self.grid_power = 0
+            self.PV_power = 0
             self.current_load = 0
             self.error_logger.warning("No modbus connection")
 
+        self.publisher.update_value(-self.grid_power)
         self.client.close()
 
         # return (self.PV_power, self.grid_power, self.current_load)

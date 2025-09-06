@@ -4,7 +4,7 @@ After=network.target
 
 [Service]
 ExecStart=/home/pi/RPI-Solar-monitoring/start_script.sh
-WorkingDirectory=/home/pi/RPI-solar-monitoring
+WorkingDirectory=/home/pi/RPI-Solar-monitoring
 StandardOutput=inherit
 StandardError=inherit
 Restart=always
