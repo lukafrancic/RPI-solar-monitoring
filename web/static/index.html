@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>RPI Solar</title>
+  <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+<div class="main">
+  <div class="toolbar">
+    <div class="toolbar-left menu-button" onclick="toggleMenu()">☰</div>
+    <div class="toolbar-center">SolarRPI</div>
+    <div class="toolbar-right"><!-- placeholder --></div>
+  </div>
+
+  <div id="side-menu" class="side-menu">
+    <button onclick="menuAction('dashboard')">Dashboard</button>
+    <button onclick="menuAction('config')">Config</button>
+    <button onclick="menuAction('logs')">Logs</button>
+  </div>
+
+  <div id="screen-dashboard" class="screen">
+    <img id="house" class="icon element" style="top: 60%; left: 20%" src="static/src/house.png">
+    <label id="house-label" class="icon label element" style="top: 80%; left: 30%">N.A.</label>    
+    <img id="panel" class="icon element" style="top: 20%; left: 50%" src="static/src/panel.png">
+    <label id="panel-label" class="icon label element" style="top: 40%; left: 62%">N.A.</label>    
+    <img id="junction" class="icon element" style="top: 60%; left: 50%" src="static/src/junction.png">    
+    <label id="junction-label" class="icon label element" style="top: 80%; left: 62%">N.A.</label>    
+    <img id="grid" class="icon element" style="top: 60%; left: 80%" src="static/src/grid.png">
+    <label id="grid-label" class="icon label element" style="top: 80%; left: 90%">N.A.</label>    
+  </div>
+
+  <div id="screen-logs" class="screen hidden" >
+    logs
+  </div>
+
+  <div id="screen-config" class="screen hidden" >
+    <div class="config-setup", id="user-config">
+        <label class="title">User config</label>
+        <div class="form-row hoverBox" id="config-select">
+            <label for="RPI-setup">RPI Setup:</label>
+            <select name="setup" id="RPI-select">
+                <option value="Simulator">Simulator</option>
+                <option value="Standalone">Standalone</option>
+                <option value="Subscriber">Subscriber</option>
+                <option value="Publisher">Publisher</option>
+            </select>
+            <div class="tooltip">Select the desired RPI setup.<br>
+                Standalone: Direct web connection to router.<br>
+                Subscriber: Connected to another RPI via MQTT protocol.<br>
+                Publisher: Outputs data to the subscriber over MQQT protocol.
+            </div>
+        </div>
+        <div class="form-row hoverBox", id="config-ip">
+            <label>IP:</label>
+            <input type="text" required maxlength="15"/>
+            <div class="tooltip">Enter the inverter's IP address. Example 192.168.150.5</div>
+        </div>
+        <div class="form-row hoverBox", id="config-port">
+            <label>Port:</label>
+            <input type="text" required maxlength="4"/>
+            <div class="tooltip">Enter the inverter's port number. Example 1502</div>
+        </div>
+        <div class="form-row hoverBox", id="config-limit">
+            <label>Limit [W]:</label>
+            <input type="number" required min="0" max="100000"/>
+            <div class="tooltip">Enter the desired power usage limit in Watts.</div>
+        </div>
+        <div class="form-row hoverBox", id="config-alarm_on_time">
+            <label>Alarm on time [s]:</label>
+            <input type="number" required max="10000"/>
+            <div class="tooltip">Enter the time limit the alarm stays on in seconds</div>
+        </div>
+        <div class="form-row hoverBox", id="config-alarm_timeout">
+            <label>Alarm timeout [s]:</label>
+            <input type="number" required max="10000"/>
+            <div class="tooltip">Enter the time delay before the alarm starts again.</div>
+        </div>
+        <div class="form-row hoverBox", id="config-alarm_delay">
+            <label>Alarm delay [s]:</label>
+            <input type="number" required max="10000"/>
+            <div class="tooltip">Enter the delay, before the alarm starts.</div>
+        </div>
+        <div class="form-row hoverBox", id="config-lower_pow_limit">
+            <label>Power low limit [W]:</label>
+            <input type="number" required max="100000"/>
+            <div class="tooltip">Relay timeout counter starts when the defined power limit is reached.</div>
+        </div>
+        <div class="form-row hoverBox", id="config-relay_timeout">
+            <label>Relay timeout [s]:</label>
+            <input type="number" required max="10000"/>
+            <div class="tooltip">Relays stay active for the defined time.</div>
+        </div>
+        <div class="form-row hoverBox", id="config-connection_timeout">
+            <label>Connection timeout [s]:</label>
+            <input type="number" required max="10000"/>
+            <div class="tooltip">All flags get restarted after the defined time if no active connection.</div>
+        </div>
+        <div class="form-row hoverBox", id="config-alarm_pin">
+            <label>Alarm pin:</label>
+            <input type="text" required maxlength="20"/>
+            <div class="tooltip">Enter the GPIO for the alarm.<br>
+                Example J8:3</div>
+        </div>
+        <div class="form-row hoverBox", id="config-relay_pins">
+            <label>Relay pin:</label>
+            <input type="text" required maxlength="20"/>
+            <div class="tooltip">Enter the GPIO for the relays. 
+                Multiple GPIO's can be set as the following example<br>
+                J8:11; J8:13
+            </div>
+        </div>
+    </div>
+    <div class="config-setup" id="mqtt-config">
+        <label class="title">MQTT config</label>
+        <div class="form-row hoverBox", id="mqtt-broker_ip">
+            <label>Broker IP:</label>
+            <input type="text" required maxlength="15"/>
+            <div class="tooltip">Enter the broker's IP address. Example 192.168.150.5</div>
+        </div>
+        <div class="form-row hoverBox", id="mqtt-port">
+            <label>Port:</label>
+            <input type="number" required max="40000"/>
+            <div class="tooltip">Enter the broker's port.</div>
+        </div>
+        <div class="form-row hoverBox", id="mqtt-username">
+            <label>Username:</label>
+            <input type="text" required maxlength="20"/>
+            <div class="tooltip">Enter the brokers's username.</div>
+        </div>
+        <div class="form-row hoverBox", id="mqtt-password">
+            <label>Password:</label>
+            <input type="text" required maxlength="20">
+            <div class="tooltip">Enter the broker's password.</div>
+        </div>
+        <div class="form-row hoverBox", id="mqtt-topic">
+            <label>Topic:</label>
+            <input type="text" required maxlength="15"/>
+            <div class="tooltip">Enter the MQTT topic. Leave this set to "Power"</div>
+        </div>
+    </div>
+    <button class="config-setup" onclick="sendConfig()">Update</button>
+  </div>
+
+  <script src="/static/script.js"></script>
+  
+</div>
+</body>
+</html>
+

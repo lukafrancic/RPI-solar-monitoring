@@ -1,0 +1,231 @@
+html, body {
+    margin: 0;
+    padding: 0;
+}
+
+
+.main {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 0%;
+}
+
+
+/*
+Toolbar and menu
+
+
+*/
+/* Top bar */
+.toolbar {
+    position: relative;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+
+    height: 50px;
+    width: 100%;
+    background: #f8f8f8;
+    border-bottom: 1px solid #ccc;
+
+    padding: 0 10px;
+    box-sizing: border-box;
+}
+
+/* Left + Right fixed width */
+.toolbar-left,
+.toolbar-right {
+    width: 50px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+/* Centered text stays centered regardless of icons */
+.toolbar-center {
+    position: absolute;
+    left: 50%;
+    transform: translateX(-50%);
+    font-size: 20px;
+    font-weight: bold;
+    pointer-events: none; /* Keeps title from blocking click events */
+}
+
+/* Menu button */
+.menu-button {
+    font-size: 1.8rem;
+    cursor: pointer;
+    user-select: none;
+}
+
+/* Slide-out side menu */
+#side-menu {
+    position: absolute;
+    top: 50px;      /* directly below toolbar */
+    left: 0;
+    width: 0;
+    overflow: hidden;
+
+    background: #e5e5e5;
+    border-right: 1px solid #bbb;
+
+    display: flex;
+    flex-direction: column;
+    transition: width 0.3s ease;
+
+    z-index: 100;
+}
+
+#side-menu.open {
+    width: 250px;  /* menu width */
+}
+
+#side-menu button {
+    padding: 15px;
+    border: none;
+    background: none;
+    text-align: left;
+    font-size: 1rem;
+    cursor: pointer;
+}
+
+#side-menu button:hover {
+    background: #d0d0d0;
+}
+
+/*
+Diagram
+*/
+
+#screen-dashboard {
+    position: relative;
+    width: 90vw;             /* mobile-friendly */
+    max-width: 800px;        /* looks good on desktop */
+    aspect-ratio: 4 / 3;     /* lock proportions */
+    /* background: ; */
+    border: 1px solid #ccc;
+    justify-content: center;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+/* Icons, labels, arrows all use absolute positioning */
+.element {
+    position: absolute;
+    transform: translate(-50%, -50%);   /* center anchor */
+}
+
+/* Example icon */
+.icon {
+    width: 25%;   /* scales with container */
+}
+
+:root[data-theme="light"] .icon {
+    filter: invert(0%); /* black */
+}
+
+:root[data-theme="dark"] .icon {
+    filter: invert(100%); /* white */
+}
+
+
+.screen {
+    display: block;
+    padding: 20px;
+}
+
+.hidden {
+    display: none !important;
+}
+
+/*Config*/
+
+#screen-config {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    width: 100%;
+    max-width: 520px;
+    margin: auto;
+    padding: 20px;
+}
+
+
+.hoverBox {
+    position: relative;   /* required for absolute tooltip */
+    display: inline-block;
+}
+
+/* initially hidden */
+.hoverBox .tooltip {
+    visibility: hidden;   /* use visibility instead of display */
+    opacity: 0;           /* fade animation */
+    
+    position: absolute;
+    left: 100%;           /* right of the element */
+    top: 0;
+
+    width: 200px;
+    padding: 8px;
+    background: #222;
+    color: #fff;
+    border-radius: 6px;
+    font-size: 0.9rem;
+
+    transform: translateX(10px); /* slight offset */
+    transition: opacity 0.2s ease, transform 0.2s ease;
+    z-index: 1000;        /* on top */
+}
+
+/* make it appear on hover */
+.hoverBox:hover .tooltip {
+    visibility: visible;
+    opacity: 1;
+    transform: translateX(0);
+}
+
+/* Each row */
+.form-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+    position: relative; /* Tooltip anchor */
+    margin-bottom: 6px;
+}
+
+/* Label and input alignment */
+.form-row label {
+    flex: 1;
+    text-align: left;
+    padding-right: 10px;
+}
+
+.form-row input,
+.form-row select {
+    flex: 2;
+    padding: 5px 10px;
+    border: 1px solid #ccc;
+    border-radius: 6px;
+    font-size: 1rem;
+    width: 100%; /* ensures equal size */
+    box-sizing: border-box;
+}
+
+#mqtt-config.hidden {
+    display: none;
+}
+
+.title {
+    font-size: larger;
+    font-weight: bold;
+}
+
+.config-setup {
+    
+    flex: 2;
+    padding: 6px 10px;
+    border: 1px solid #ccc;
+    border-radius: 12px;
+}

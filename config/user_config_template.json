@@ -1,4 +1,5 @@
 {
+    "mode": "Standalone",
     "ip": "192.168.1.45",
     "port": 1502,
     "limit": 5000,
@@ -9,5 +10,7 @@
     "relay_timeout": 300,
     "connection_timeout": 300,
     "alarm_pin": "J8:3",
-    "relay_pins": ["J8:11", "J8:13"]
+    "relay_pins": "J8:11; J8:13",
+    "inverter_cycle_time": 30,
+    "logic_cycle_time": 5
 }

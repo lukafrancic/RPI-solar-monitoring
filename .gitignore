@@ -13,14 +13,13 @@ __pypackages__/
 .venv
 
 # User configs
-lib/config/mqtt_config.json
-lib/config/user_config.json
+config/mqtt_config.json
+config/user_config.json
 start_script.sh
 solar.service
 
 # logs
-publisher_pi/logs/
-subscriber_pi/logs/
+logs/
 
 # dev
 main_old.py

@@ -2,3 +2,4 @@ pymodbus
 paho-mqtt
 gpiozero
 lgpio
+fastapi["standard"]

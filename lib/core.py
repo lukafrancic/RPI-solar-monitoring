@@ -6,8 +6,9 @@ import asyncio
 from typing import Union
 import paho.mqtt.client as mqtt
 from gpiozero import DigitalOutputDevice
+from collections.abc import Callable
 
-from .utils import *
+from lib.utils import *
 
 
 
@@ -43,6 +44,7 @@ class DecisionMaker:
         self._lock = threading.Lock()
         self._thread = None
         self._is_updated = False
+        self._event = threading.Event()
 
         self._initialize_pins()
 
@@ -182,9 +184,8 @@ class DecisionMaker:
 
 
     def _loop(self):
-        while True:
+        while self._event.is_set():
             t1 = time.monotonic()
-            
             with self._lock:
                 self._decision_loop()
 
@@ -201,19 +202,21 @@ class DecisionMaker:
 
     def start_loop(self):
         if not self._thread_status:
+            self._event.set()
             self._thread = threading.Thread(target=self._loop)
             self._thread.start()
             self._thread_status = True
 
     
-    def stop_loop(self):
+    def stop(self):
         if self._thread_status:
+            self._event.clear()
             self._thread.join()
             self._thread_status = False
 
 
 
-class ModbusAcq:
+class SolarEdgeModbus:
     """
     Acquisition class to get data from inverter via Modbus.
     """
@@ -224,13 +227,15 @@ class ModbusAcq:
 
 
     def __init__(self, config: UserConfig, 
-                 publisher: Union["MqqtPublisher", DecisionMaker], 
+                 publisher: Union["MqqtPublisher", DecisionMaker],
+                 broadcaster: Callable[[TransferData], None],
                  acq_time: int = 30):
         """
         config: dictionary from load_json function
         """
         self.client = AsyncModbusTcpClient(config["ip"], port=config["port"], 
                                       timeout = 0.1)
+        self.broadcaster = broadcaster
         self.grid_power = 0
         self.PV_power = 0
         self.current_load = 0
@@ -240,6 +245,8 @@ class ModbusAcq:
 
         self.publisher = publisher
         self.acq_time = acq_time
+
+        self._event = asyncio.Event()
 
         
     async def _read_register(self, address: int, count: int = 1) -> list[int]:
@@ -372,10 +379,12 @@ class ModbusAcq:
             return val - 2**16
         
         return val
-    
+
 
     async def loop(self) -> None:
-        while True:
+        self._event.set()
+
+        while self._event.is_set():
             t1 = time.monotonic()
 
             await self.get_new_data()
@@ -384,11 +393,18 @@ class ModbusAcq:
 
             await asyncio.sleep((self.acq_time - t2 +t1))
     
+    
+    def stop(self):
+        self._event.clear()
 
 
 class MqqtSubscriber:
-    def __init__(self, config: MqqtConfig, decision_maker: DecisionMaker):
+    def __init__(self, 
+                 config: MqttConfig, 
+                 decision_maker: DecisionMaker,
+                 broadcaster: Callable[[TransferData], None]):
         self.config = config
+        self.broadcaster = broadcaster
         self.error_logger = logging.getLogger("error_logger")
         self.decision_maker = decision_maker
 
@@ -400,6 +416,7 @@ class MqqtSubscriber:
         self.client.username_pw_set(username=self.config["username"], 
                                     password=self.config["password"])
         self.client.connect(self.config["broker_ip"], self.config["port"], 300)
+        self.client.reconnect_delay_set(min_delay=10, max_delay=60)
 
 
     def on_connect(self, client, userdata, flags, rc):
@@ -423,13 +440,20 @@ class MqqtSubscriber:
         self.error_logger.info(f"Disconnected with result code {str(rc)}")
 
 
-    def loop(self):
-        self.client.loop_forever(retry_first_connection=True)
+    def start_loop(self):
+        self.client.loop_start()
+
+    
+    def stop(self):
+        self.client.loop_stop()
+        self.client.disconnect()
+
+
 
 
 
 class MqqtPublisher:
-    def __init__(self, config: MqqtConfig):
+    def __init__(self, config: MqttConfig):
         self.config = config
         self.error_logger = logging.getLogger("error_logger")
 
@@ -440,6 +464,7 @@ class MqqtPublisher:
         self.client.username_pw_set(username=self.config["username"], 
                                     password=self.config["password"])
         self.client.connect(self.config["broker_ip"], self.config["port"], 300)
+        self.client.reconnect_delay_set(min_delay=10, max_delay=60)
 
 
     def on_connect(self, client, userdata, flags, rc):
@@ -459,7 +484,7 @@ class MqqtPublisher:
             self.error_logger.info(f"Publisher sent: {msg}")
         else:
             self.error_logger.warning(f"Publisher failed: {ret.rc}")
-        
+
 
     def start_loop(self):
         self.client.loop_start()
