@@ -1,6 +1,15 @@
 let currentMode;
 let isManual = false;
-var ws = new WebSocket("ws://localhost:8000/ws");
+var ws = new WebSocket(
+  (location.protocol === "https:" ? "wss://" : "ws://") +
+  location.host +
+  "/ws"
+);
+
+ws.onopen = () => console.log("WebSocket connected");
+ws.onmessage = e => console.log("Message:", e.data);
+ws.onerror = e => console.error("WebSocket error", e);
+ws.onclose = () => console.log("WebSocket closed");
 
 
 function toggleMenu() {
