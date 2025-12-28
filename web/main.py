@@ -18,7 +18,7 @@ task = lib.TaskManager()
 async def lifespan(app: FastAPI):
     try:
         print("loading config")
-        config = lib.load_user_config()
+        config = lib.load_sys_config()
         print("starting task")
         
         async def start_background():
@@ -49,10 +49,13 @@ async def index():
 
 @app.get("/config")
 async def get_config() -> lib.Config:
-    user = lib.load_user_config()
+    sys = lib.load_sys_config()
     mqtt = lib.load_mqtt_config()
+    modbus = lib.load_modbus_config()
 
-    return lib.Config(user=user, mqtt=mqtt)
+    ret =  lib.Config(sys=sys, mqtt=mqtt, modbus=modbus)
+    print(ret)
+    return ret
 
 
 
@@ -65,27 +68,29 @@ async def update_config(data: lib.Config) -> None:
     saved in case user.mode is Standalone.
     :type data: lib.Config
     """
-    lib.update_config(data.user)
-    if data.user.mode != "Standalone":
+    print("Updating configs")
+    lib.update_config(data.sys)
+    if data.sys.mode != "Standalone":
         lib.update_config(data.mqtt)
 
     await task.cancel_task()
-    await task.do_new_task(data.user.mode)
+    await task.do_new_task(data.sys.mode)
 
 
 
 @app.websocket("/ws")
 async def websocket_endpoint(websocket: WebSocket):
-    print("insude websocket_endpoint")
     await websocket.accept()
-    print("web socket accepted")
     task.add_socket(websocket)
-    print("websocket added")
+
     try:
         while True:
-            _ = await websocket.receive_text()
+            data = await websocket.receive_text()
+            print(data)
+            await task.manage_msg(data)
     except:
         task.remove_socket(websocket)
+        print("Websocket failed")
 
 
 

@@ -1,3 +1,8 @@
+let currentMode;
+let isManual = false;
+var ws = new WebSocket("ws://localhost:8000/ws");
+
+
 function toggleMenu() {
     const menu = document.getElementById("side-menu");
     menu.classList.toggle("open");
@@ -13,13 +18,44 @@ function menuAction(name) {
 
 function setConfigVisibility(){
     const mode = document.getElementById("RPI-select").value;
-    const extra = document.getElementById("mqtt-config");
+    const sys_config = document.getElementById("sys-config");
+    const modbus_config = document.getElementById("modbus-config");
+    const mqtt_config = document.getElementById("mqtt-config");
+    const manual = document.getElementById("manual-control");
 
-    if (mode === "Standalone" || mode === "Simulator") {
-        extra.classList.add("hidden");
-    } else {
-        extra.classList.remove("hidden");
+    switch (mode) {
+        case "Simulator":
+            sys_config.classList.remove("hidden");
+            modbus_config.classList.add("hidden");
+            mqtt_config.classList.add("hidden");
+            if (isManual) {
+                manual.classList.remove("hidden");
+            }
+            break;
+        
+        case "Standalone":
+            sys_config.classList.remove("hidden");
+            modbus_config.classList.remove("hidden");
+            mqtt_config.classList.add("hidden");
+            manual.classList.add("hidden");
+            break;
+        case "Subscriber":
+            sys_config.classList.remove("hidden");
+            modbus_config.classList.add("hidden");
+            mqtt_config.classList.remove("hidden");
+            manual.classList.add("hidden");
+            break;
+        case "Publisher":
+            sys_config.classList.add("hidden");
+            modbus_config.classList.remove("hidden");
+            mqtt_config.classList.remove("hidden");
+            manual.classList.add("hidden");
+            break;
+        default:
+            console.log("Failed at setting config visibility");
     }
+
+
 }
 
 
@@ -84,47 +120,102 @@ async function loadConfig() {
     if (!config) return;
 
     // console.log(config);
-    UCContainer = document.getElementById("user-config");
-    populateConfigDiv("config-", config.user, UCContainer);
+    const sysContainer = document.getElementById("sys-config");
+    populateConfigDiv("config-", config.sys, sysContainer);
 
-    MCContainer = document.getElementById("mqtt-config");
-    populateConfigDiv("mqtt-", config.mqtt, MCContainer);
+    const ModbusContainer = document.getElementById("modbus-config");
+    populateConfigDiv("modbus-", config.modbus, ModbusContainer);
+
+    const MqttContainer = document.getElementById("mqtt-config");
+    populateConfigDiv("mqtt-", config.mqtt, MqttContainer);
     
-    UCContainer.querySelector("#RPI-select").value = config.user.mode;
+    const RPISelect = document.getElementById("RPI-select");
+    RPISelect.value = config.sys.mode;
 
     // document.getElementById("RPI-select").dispatchEvent(new Event("change"));
+    loadManual(config.sys);
+
+    currentMode = config.sys.mode;
+    isManual = (currentMode == "Simulator");
     setConfigVisibility();
 }
 
 
+function loadManual(config) {
+    const container = document.getElementById("manual-control");
+
+    const data = {}
+    data[config.alarm_pin] = "Alarm pin";
+    const relays = config.relay_pins.split(";")
+    relays.forEach((element) => {
+        data[element] = "Relay pin";
+    })
+
+    for (const [key, value] of Object.entries(data)) {
+        const new_div = document.createElement("div");
+        new_div.className = "form-row hoverBox";
+        new_div.innerHTML = `
+            <label for="manual-label-${key}">${key}</label>
+            <label class="switch">
+                <input id="manual-label-${key}" 
+                    type="checkbox" 
+                    class="manual-toggle"
+                    data-pin="${key}">
+                <span class="slider round"></span>
+            </label>
+            <div class="tooltip">${value}</div>
+        `;
+        container.appendChild(new_div);
+    }
+}
+
+
+
 async function sendConfig() {
     const payload = {
-        user: {},
+        sys: {},
+        modbus: {},
         mqtt: {}
     };
 
-    UCContainer = document.getElementById("user-config");
-    var divs = UCContainer.querySelectorAll(".form-row");
+    const sysContainer = document.getElementById("sys-config");
+    var divs = sysContainer.querySelectorAll(".form-row");
     divs.forEach((element) => {
         const divName = element.id.split("-");
         const input = element.querySelector("input");
-        if (input && divName.length == 2) payload.user[divName[1]] = input.value;
+        if (input && divName.length == 2) payload.sys[divName[1]] = input.value;
     })
-    payload.user["mode"] = UCContainer.querySelector("#RPI-select").value;
+
+    payload.sys["mode"] = document.getElementById("RPI-select").value;
     
-    MCContainer = document.getElementById("mqtt-config");
-    var divs = MCContainer.querySelectorAll(".form-row");
+    const mqttContainer = document.getElementById("mqtt-config");
+    var divs = mqttContainer.querySelectorAll(".form-row");
     divs.forEach((element) => {
         const divName = element.id.split("-");
         const input = element.querySelector("input");
         if (input && divName.length == 2) payload.mqtt[divName[1]] = input.value;
     })
 
+    const modbusContainer = document.getElementById("modbus-config");
+    var divs = modbusContainer.querySelectorAll(".form-row");
+    divs.forEach((element) => {
+        const divName = element.id.split("-");
+        const input = element.querySelector("input");
+        if (input && divName.length == 2) payload.modbus[divName[1]] = input.value;
+    })
+
     await postData("/config", payload);
+
+    const container = document.getElementById("manual-control");
+    container.innerHTML = "";
+    while (container.firstChild) {
+        container.removeChild.firstChild;
+    }
+    loadManual(payload.sys);
 }
 
 
-var ws = new WebSocket("ws://localhost:8000/ws");
+
 ws.onmessage = function(event) {
     const data = JSON.parse(event.data);
 
@@ -137,5 +228,22 @@ ws.onmessage = function(event) {
     // console.log(`${event.data}`);
     // console.log(`${data}`);
 };
+
+
+
+document.getElementById("manual-control").addEventListener("change", (event) => {
+    if (!event.target.matches(".manual-toggle")) return;
+
+    const checkbox = event.target;
+
+    const payload = {
+        pin: checkbox.dataset.pin,
+        enabled: checkbox.checked
+    };
+
+    ws.send(JSON.stringify(payload));
+    console.log(payload);
+});
+
 
 loadConfig();

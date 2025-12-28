@@ -11,10 +11,8 @@ CONFIG_DIR = Path(__file__).resolve().parents[1] / "config"
 
 
 
-class UserConfig(BaseModel):
+class SysConfig(BaseModel):
     mode: str = "Simulator" # RPI-setup
-    ip : str = "192.168.1.45" # inverter IP
-    port : int = 1502 # inverter Port num
     limit : int = 5000 # alarm goes up when this limit is passed
     alarm_on_time : int = 15 # alarm stays on for N seconds
     alarm_timeout : int = 60 # alarm starts again after N seconds
@@ -24,8 +22,15 @@ class UserConfig(BaseModel):
     connection_timeout: int = 300 # After N seconds the load value resets to 0 in DecisionMaker
     alarm_pin: str = "J8:3"
     relay_pins: str = "J8:11; J8:13" # list of pins GPIO pins to use, separated by ;
-    inverter_cycle_time: int = 30
-    logic_cycle_time: int = 5
+    cycle_time: int = 5
+
+
+
+class ModbusConfig(BaseModel):
+    ip: str = "192.168.1.45"
+    port: int = 1502
+    timeout: int = 5
+    acq_time: int = 30
 
 
 
@@ -39,7 +44,8 @@ class MqttConfig(BaseModel):
 
 
 class Config(BaseModel):
-    user: UserConfig
+    sys: SysConfig
+    modbus: ModbusConfig
     mqtt: MqttConfig
 
 
@@ -75,21 +81,21 @@ def load_json(filename: str) -> dict:
 
 
 
-def load_user_config() -> UserConfig:
+def load_sys_config() -> SysConfig:
     """
     Load config stored as an UserConfig object.
     If file doesn't exist or fails to load, it returns an UserConfig instance
     with default parameters.
     """
-    filename = CONFIG_DIR / "user_config.json"
+    filename = CONFIG_DIR / "sys_config.json"
     if os.path.exists(filename):
         try:
             config = load_json(filename)
-            return UserConfig(**config)
+            return SysConfig(**config)
         except Exception as error:
             print(f"Failed to load json file:\n{error}\nUsing default values.")
     
-    return UserConfig()
+    return SysConfig()
 
 
 
@@ -111,7 +117,25 @@ def load_mqtt_config() -> MqttConfig:
 
 
 
-def update_config(data: MqttConfig | UserConfig) -> None:
+def load_modbus_config() -> ModbusConfig:
+    """
+    Load config stored as an MqttConfig object.
+    If file doesn't exist or fails to load, it returns an UserConfig instance
+    with default parameters.
+    """
+    filename = CONFIG_DIR / "modbus_config.json"
+    if os.path.exists(filename):
+        try:
+            config = load_json(filename)
+            return ModbusConfig(**config)
+        except Exception as error:
+            print(f"Failed to load json file:\n{error}\nUsing default values.")
+    
+    return ModbusConfig()
+
+
+
+def update_config(data: MqttConfig | SysConfig | ModbusConfig) -> None:
     """
     Save the updated config file.
     
@@ -119,10 +143,12 @@ def update_config(data: MqttConfig | UserConfig) -> None:
     :type data: MqqtConfig | UserConfig
     """
 
-    if isinstance(data, UserConfig):
-        filename = CONFIG_DIR / "user_config.json"
+    if isinstance(data, SysConfig):
+        filename = CONFIG_DIR / "sys_config.json"
     elif isinstance(data, MqttConfig):
         filename = CONFIG_DIR / "mqtt_config.json"
+    elif isinstance(data, ModbusConfig):
+        filename = CONFIG_DIR / "modbus_config.json"
     else:
         raise TypeError(f"Received unxpected type of {type(data)}!")
     

@@ -3,6 +3,7 @@ import asyncio
 import random
 from fastapi import WebSocket
 from collections.abc import Callable
+from gpiozero import DigitalOutputDevice
 
 from lib.core import DecisionMaker, SolarEdgeModbus, MqqtPublisher, MqqtSubscriber
 from lib.utils import *
@@ -30,6 +31,10 @@ class BaseMode:
             self.publisher.stop()
         if self.data_acq:
             self.data_acq.stop()
+
+
+    async def manage_msg(self, msg: str):
+        print(msg)
 
 
 
@@ -60,10 +65,24 @@ class Simulator(BaseMode):
 
 
     def get_task(self):
-        print("got task request")
-        user_config = load_user_config()
-        # self._loop_time = user_config.inverter_cycle_time
+        self._config = load_sys_config()
         self._event.set()
+        self._pins = {}
+        self._initialized = False
+        
+        try:
+            pins = self._config.relay_pins.split(";")
+            for pin in pins:
+                pin = pin.strip(" ")
+                self._pins[pin] = DigitalOutputDevice(pin)
+            
+            alarm_pin = self._config.alarm_pin
+            self._pins[alarm_pin] = DigitalOutputDevice(alarm_pin)
+
+            self._initialized = True
+
+        except Exception as err:
+            print(f"Failed to initialize pins {err}")
 
         return self.loop()
 
@@ -71,17 +90,40 @@ class Simulator(BaseMode):
     def stop_task(self):
         self._event.clear()
 
+        for (key, pin) in self._pins.items():
+            try:
+                pin.off()
+                pin.close()
+            except Exception as err:
+                print(f"Failed to close pin {key}\n{err}")
+        
+        self._initialized = False
+
+
+    async def manage_msg(self, msg):
+        print("Managing msg")
+        if not self._initialized:
+            return
+        try:
+            msg = json.loads(msg)
+            if msg["enabled"]:
+                self._pins[msg["pin"]].on()
+            else:
+                self._pins[msg["pin"]].off()
+        except Exception as err:
+            print(f"Error while managing msg:\n{err}")
+
 
 
 class Standalone(BaseMode):
     def get_task(self):
-        user_config = load_user_config()
-        self.publisher = DecisionMaker(user_config, 5)
+        sys_config = load_sys_config()
+        self.publisher = DecisionMaker(sys_config, 5)
         self.publisher.start_loop()
 
-        user_config = load_user_config()
+        modbus_config = load_modbus_config()
         self.data_acq = SolarEdgeModbus(
-            user_config, self.publisher, self.brodcaster)
+            modbus_config, self.publisher, self.brodcaster)
 
         return self.data_acq.loop()
 
@@ -93,9 +135,9 @@ class Publisher(BaseMode):
         self.publisher = MqqtPublisher(mqtt_config)
         self.publisher.start_loop()
         
-        user_config = load_user_config()
+        modbus_config = load_modbus_config()
         self.data_acq = SolarEdgeModbus(
-            user_config, self.publisher, self.brodcaster)
+            modbus_config, self.publisher, self.brodcaster)
 
         return self.data_acq.loop()
 
@@ -103,8 +145,8 @@ class Publisher(BaseMode):
 
 class Subscriber(BaseMode):
     def get_task(self):
-        user_config = load_user_config()
-        self.publisher = DecisionMaker(user_config, 5)
+        sys_config = load_sys_config()
+        self.publisher = DecisionMaker(sys_config, 5)
         self.publisher.start_loop()
 
         mqtt_config = load_mqtt_config()
@@ -153,7 +195,7 @@ class TaskManager:
                 self.task = asyncio.create_task(task)
 
         print("new task started")
-        
+
 
     async def cancel_task(self):
         if self.model is not None:
@@ -178,4 +220,9 @@ class TaskManager:
 
         for ws in dead:
             self.sockets.discard(ws)
+
+
+    async def manage_msg(self, msg: str):
+        if self.model:
+            await self.model.manage_msg(msg)
         

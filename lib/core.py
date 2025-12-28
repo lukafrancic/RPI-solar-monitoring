@@ -17,7 +17,8 @@ class DecisionMaker:
     A class that runs the relay/alarm logic based on config settings and
     current power levels.
     """
-    def __init__(self, config: UserConfig, acq_time: int = 30):
+    def __init__(self, config: SysConfig, 
+                 acq_time: int = 30):
         """
         Params
             config: dictionary from load_json function
@@ -50,12 +51,18 @@ class DecisionMaker:
 
 
     def _initialize_pins(self):
-        self.relay_pins = []
+        self.relay_pins: list[DigitalOutputDevice] = []
         for pin_name in self.config["relay_pins"]:
             pin = DigitalOutputDevice(pin_name)
             self.relay_pins.append(pin)
 
         self.alarm_pin = DigitalOutputDevice(self.config["alarm_pin"])
+
+    
+    def _clear_pins(self):
+        for pin in self.relay_pins:
+            pin.close()
+        self.alarm_pin.close()
         
 
     def _set_relays(self, state: bool):
@@ -226,7 +233,7 @@ class SolarEdgeModbus:
     GRID_SCALE = 210
 
 
-    def __init__(self, config: UserConfig, 
+    def __init__(self, config: ModbusConfig, 
                  publisher: Union["MqqtPublisher", DecisionMaker],
                  broadcaster: Callable[[TransferData], None],
                  acq_time: int = 30):
@@ -247,6 +254,7 @@ class SolarEdgeModbus:
         self.acq_time = acq_time
 
         self._event = asyncio.Event()
+        self._lock = asyncio.Lock()
 
         
     async def _read_register(self, address: int, count: int = 1) -> list[int]:
@@ -386,8 +394,13 @@ class SolarEdgeModbus:
 
         while self._event.is_set():
             t1 = time.monotonic()
-
             await self.get_new_data()
+
+            data = TransferData(
+                grid=self.grid_power, PV=self.PV_power,
+                load=self.current_load, status="NA"
+            )
+            await self.broadcaster(data)
 
             t2 = time.monotonic()
 

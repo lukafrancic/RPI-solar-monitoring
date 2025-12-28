@@ -32,14 +32,14 @@
   </div>
 
   <div id="screen-logs" class="screen hidden" >
-    logs
+    maybe one day
   </div>
 
   <div id="screen-config" class="screen hidden" >
-    <div class="config-setup", id="user-config">
-        <label class="title">User config</label>
+    <div class ="config-setup", id="mode-config">
+        <label class="title">RPI Setup</label>
         <div class="form-row hoverBox" id="config-select">
-            <label for="RPI-setup">RPI Setup:</label>
+            <label for="RPI-select">Mode:</label>
             <select name="setup" id="RPI-select">
                 <option value="Simulator">Simulator</option>
                 <option value="Standalone">Standalone</option>
@@ -47,21 +47,17 @@
                 <option value="Publisher">Publisher</option>
             </select>
             <div class="tooltip">Select the desired RPI setup.<br>
+                Simulator: Test the RPI GPIOs.<br>
                 Standalone: Direct web connection to router.<br>
                 Subscriber: Connected to another RPI via MQTT protocol.<br>
                 Publisher: Outputs data to the subscriber over MQQT protocol.
             </div>
         </div>
-        <div class="form-row hoverBox", id="config-ip">
-            <label>IP:</label>
-            <input type="text" required maxlength="15"/>
-            <div class="tooltip">Enter the inverter's IP address. Example 192.168.150.5</div>
-        </div>
-        <div class="form-row hoverBox", id="config-port">
-            <label>Port:</label>
-            <input type="text" required maxlength="4"/>
-            <div class="tooltip">Enter the inverter's port number. Example 1502</div>
-        </div>
+    </div>
+
+
+    <div class="config-setup", id="sys-config">
+        <label class="title">System config</label>
         <div class="form-row hoverBox", id="config-limit">
             <label>Limit [W]:</label>
             <input type="number" required min="0" max="100000"/>
@@ -111,7 +107,39 @@
                 J8:11; J8:13
             </div>
         </div>
+        <div class="form-row hoverBox", id="config-cycle_time">
+            <label>Cycle time:</label>
+            <input type="number" required max="1000"/>
+            <div class="tooltip">Enter the decision maker cycle time in seconds.</div>
+        </div>
     </div>
+    
+
+    <div class="config-setup" id="modbus-config">
+        <label class="title">Modbus config</label>
+        <div class="form-row hoverBox", id="modbus-ip">
+            <label>IP:</label>
+            <input type="text" required maxlength="15"/>
+            <div class="tooltip">Enter the inverter's IP address. Example 192.168.150.5</div>
+        </div>
+        <div class="form-row hoverBox", id="modbus-port">
+            <label>Port:</label>
+            <input type="number" required max="99999"/>
+            <div class="tooltip">Enter the inverter's port number. Example 1502</div>
+        </div>
+        <div class="form-row hoverBox", id="modbus-timeout">
+            <label>Timeout:</label>
+            <input type="number" required max="1000"/>
+            <div class="tooltip">Connection timeout between each data acquisition in seconds.</div>
+        </div>
+        <div class="form-row hoverBox", id="modbus-acq_time">
+            <label>Acquisition time:</label>
+            <input type="number" required max="1000"/>
+            <div class="tooltip">Enter the modbus acquisition time in seconds.</div>
+        </div>
+    </div>
+
+
     <div class="config-setup" id="mqtt-config">
         <label class="title">MQTT config</label>
         <div class="form-row hoverBox", id="mqtt-broker_ip">
@@ -140,7 +168,13 @@
             <div class="tooltip">Enter the MQTT topic. Leave this set to "Power"</div>
         </div>
     </div>
+
     <button class="config-setup" onclick="sendConfig()">Update</button>
+
+    <div class="config-setup"id="manual-control" >
+
+    </div>
+
   </div>
 
   <script src="/static/script.js"></script>
