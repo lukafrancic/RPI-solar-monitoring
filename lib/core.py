@@ -30,6 +30,7 @@ class DecisionMaker:
         self.acq_time = config.cycle_time
         self.current_power = 0
         self.last_update = 0
+        self._current_data = TransferData()
 
         self.data_logger = logging.getLogger("data_logger")
 
@@ -213,11 +214,10 @@ class DecisionMaker:
 
         while self._event.is_set():
             t1 = time.monotonic()
-            with self._lock:
+            async with self._lock:
                 self._decision_loop()
 
-                if self._is_updated:
-                    self._is_updated = False
+                self._is_updated = False
 
                 if t1 - self.last_update > self.config.connection_timeout:
                     self.current_power = 0
@@ -228,7 +228,8 @@ class DecisionMaker:
 
                 self.data_logger.info(f"State: {self.current_state}")
 
-            time.sleep(self.acq_time)
+            t2 = time.monotonic()
+            await asyncio.sleep(max(0.1, self.acq_time - t2 + t1))
 
 
     def stop(self):
@@ -421,7 +422,7 @@ class SolarEdgeModbus:
 
             t2 = time.monotonic()
 
-            await asyncio.sleep((self.acq_time - t2 +t1))
+            await asyncio.sleep(max(0.1, self.acq_time - t2 +t1))
     
     
     def stop(self):
@@ -458,7 +459,7 @@ class MqqtSubscriber:
         self.latest_msg = msg.payload.decode()
         self.error_logger.info(f"Received: {self.latest_msg}")
         try:
-            val = json.load(self.latest_msg)
+            val = json.loads(self.latest_msg)
             data = TransferData(**val)
             self.decision_maker.update_value(data)
             
