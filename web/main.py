@@ -70,9 +70,21 @@ async def update_config(data: lib.Config) -> None:
     """
     print("Updating configs")
     lib.update_config(data.sys)
-    if data.sys.mode != "Standalone":
-        lib.update_config(data.mqtt)
-
+    match data.sys.mode:
+        case "Standalone":
+            lib.update_config(data.sys)
+            lib.update_config(data.modbus)
+        case "Simulator":
+            lib.update_config(data.sys)
+        case "Subscriber":
+            lib.update_config(data.sys)
+            lib.update_config(data.mqtt)
+        case "Publisher":
+            lib.update_config(data.modbus)
+            lib.update_config(data.mqtt)
+        case _:
+            print(f"Failed to update anything. Received: {data.sys.mode}")
+            
     await task.cancel_task()
     await task.do_new_task(data.sys.mode)
 
