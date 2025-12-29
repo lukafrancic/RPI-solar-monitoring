@@ -157,7 +157,7 @@ class Subscriber(BaseMode):
 class TaskManager:
     def __init__(self):
         self.model: BaseMode = None
-        self.task_list: list[asyncio.Task] = None
+        self.task_list: list[asyncio.Task] = []
         self.sockets: set[WebSocket] = set()
 
 
