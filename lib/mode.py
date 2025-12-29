@@ -170,7 +170,7 @@ class TaskManager:
 
 
     async def do_new_task(self, name: str):
-        if self.task:
+        if self.task_list:
             await self.cancel_task()
         await asyncio.sleep(1)
 
