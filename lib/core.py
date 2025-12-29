@@ -17,16 +17,17 @@ class DecisionMaker:
     A class that runs the relay/alarm logic based on config settings and
     current power levels.
     """
-    def __init__(self, config: SysConfig, 
-                 acq_time: int = 30):
+    def __init__(self, config: SysConfig,
+                 broadcaster: Callable[[TransferData], None] | None = None):
         """
         Params
             config: dictionary from load_json function
             acq_time: time step that will be used within the loop
         """
         self.config = config
+        self.broadcaster = broadcaster
         self.current_time = time.monotonic()
-        self.acq_time = acq_time
+        self.acq_time = config.cycle_time
         self.current_power = 0
         self.last_update = 0
 
@@ -41,11 +42,9 @@ class DecisionMaker:
         self.alarm_on_time = 0
         self.alarm_timeout_time = 0
 
-        self._thread_status = False
-        self._lock = threading.Lock()
-        self._thread = None
+        self._lock = asyncio.Lock()
         self._is_updated = False
-        self._event = threading.Event()
+        self._event = asyncio.Event()
 
         self._initialize_pins()
 
@@ -199,15 +198,19 @@ class DecisionMaker:
                 pass
     
 
-    def update_value(self, power_load: int):
-        with self._lock:
-            self.current_power = power_load
-            self.last_update = time.monotonic()
-            self.data_logger.info(f"Received {power_load}")
-            self._is_updated = True
+    def update_value(self, data: TransferData):
+        # ideally this would have a lock, but it would require the
+        # mqtt subcriber to be asynchronous as well
+        self._current_data = data
+        self.current_power = -data.grid
+        self.last_update = time.monotonic()
+        self.data_logger.info(f"Received {data}")
+        self._is_updated = True
 
 
-    def _loop(self):
+    async def loop(self):
+        self._event.set()
+
         while self._event.is_set():
             t1 = time.monotonic()
             with self._lock:
@@ -219,25 +222,18 @@ class DecisionMaker:
                 if t1 - self.last_update > self.config.connection_timeout:
                     self.current_power = 0
 
+                if self.broadcaster:
+                    self._current_data.status = self.current_state.name
+                    await self.broadcaster(self._current_data)
+
                 self.data_logger.info(f"State: {self.current_state}")
 
             time.sleep(self.acq_time)
 
 
-    def start_loop(self):
-        if not self._thread_status:
-            self._event.set()
-            self._thread = threading.Thread(target=self._loop)
-            self._thread.start()
-            self._thread_status = True
-
-    
     def stop(self):
-        if self._thread_status:
-            self._event.clear()
-            self._thread.join()
-            self._thread_status = False
-            self._clear_pins()
+        self._event.clear()
+        self._clear_pins()
 
 
 
@@ -253,7 +249,7 @@ class SolarEdgeModbus:
 
     def __init__(self, config: ModbusConfig, 
                  publisher: Union["MqqtPublisher", DecisionMaker],
-                 broadcaster: Callable[[TransferData], None]):
+                 broadcaster: Callable[[TransferData], None] = None):
         """
         config: dictionary from load_json function
         """
@@ -339,7 +335,7 @@ class SolarEdgeModbus:
             self.current_load = 0
             self.error_logger.warning("No modbus connection")
 
-        self.publisher.update_value(-self.grid_power)
+        # self.publisher.update_value(-self.grid_power)
         self.client.close()
 
         # return (self.PV_power, self.grid_power, self.current_load)
@@ -414,11 +410,14 @@ class SolarEdgeModbus:
             t1 = time.monotonic()
             await self.get_new_data()
 
-            data = TransferData(
-                grid=self.grid_power, PV=self.PV_power,
-                load=self.current_load, status="NA"
-            )
-            await self.broadcaster(data)
+            self.publisher.update_value(TransferData(
+                grid=self.grid_power, PV=self.PV_power, 
+                load=self.current_load))
+            
+            if self.broadcaster:
+                await self.broadcaster(TransferData(
+                    grid=self.grid_power, PV=self.PV_power, 
+                    load=self.current_load))
 
             t2 = time.monotonic()
 
@@ -433,10 +432,8 @@ class SolarEdgeModbus:
 class MqqtSubscriber:
     def __init__(self, 
                  config: MqttConfig, 
-                 decision_maker: DecisionMaker,
-                 broadcaster: Callable[[TransferData], None]):
+                 decision_maker: DecisionMaker):
         self.config = config
-        self.broadcaster = broadcaster
         self.error_logger = logging.getLogger("error_logger")
         self.decision_maker = decision_maker
 
@@ -461,8 +458,9 @@ class MqqtSubscriber:
         self.latest_msg = msg.payload.decode()
         self.error_logger.info(f"Received: {self.latest_msg}")
         try:
-            power = int(self.latest_msg)
-            self.decision_maker.update_value(power)
+            val = json.load(self.latest_msg)
+            data = TransferData(**val)
+            self.decision_maker.update_value(data)
             
         except:
             self.error_logger.error("Unable to cast msg to int!")
@@ -508,9 +506,10 @@ class MqqtPublisher:
         self.error_logger.info(f"Disconnected with result code {str(rc)}")
 
 
-    def update_value(self, msg: str, qos: int=2, retain: bool=False):
+    def update_value(self, data: TransferData):
+        msg = data.model_dump_json()
         ret = self.client.publish(
-            self.config.topic, payload=msg, qos=qos, retain=retain
+            self.config.topic, payload=msg, qos=2, retain=False
         )
         if ret.rc == mqtt.MQTT_ERR_SUCCESS:
             self.error_logger.info(f"Publisher sent: {msg}")

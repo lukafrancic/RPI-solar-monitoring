@@ -51,10 +51,10 @@ class Config(BaseModel):
 
 
 class TransferData(BaseModel):
-    grid: int
-    PV: int
-    load: int
-    status: str
+    grid: int = 0
+    PV: int = 0
+    load: int = 0
+    status: str = "NA"
 
 
 

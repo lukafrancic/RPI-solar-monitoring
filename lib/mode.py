@@ -19,7 +19,7 @@ class BaseMode:
         setup_logging(log_dir)
 
 
-    def get_task(self):
+    def get_task(self) -> list:
         """
         Return a Coroutine or None
         """
@@ -84,7 +84,7 @@ class Simulator(BaseMode):
         except Exception as err:
             print(f"Failed to initialize pins {err}")
 
-        return self.loop()
+        return [self.loop()]
 
 
     def stop_task(self):
@@ -118,14 +118,12 @@ class Simulator(BaseMode):
 class Standalone(BaseMode):
     def get_task(self):
         sys_config = load_sys_config()
-        self.publisher = DecisionMaker(sys_config, 5)
-        self.publisher.start_loop()
+        self.publisher = DecisionMaker(sys_config, self.brodcaster)
 
         modbus_config = load_modbus_config()
-        self.data_acq = SolarEdgeModbus(
-            modbus_config, self.publisher, self.brodcaster)
+        self.data_acq = SolarEdgeModbus(modbus_config, self.publisher)
 
-        return self.data_acq.loop()
+        return [self.data_acq.loop(), self.publisher.loop()]
 
 
 
@@ -139,28 +137,27 @@ class Publisher(BaseMode):
         self.data_acq = SolarEdgeModbus(
             modbus_config, self.publisher, self.brodcaster)
 
-        return self.data_acq.loop()
+        return [self.data_acq.loop()]
 
 
 
 class Subscriber(BaseMode):
     def get_task(self):
         sys_config = load_sys_config()
-        self.publisher = DecisionMaker(sys_config, 5)
-        self.publisher.start_loop()
+        self.publisher = DecisionMaker(sys_config, self.brodcaster)
 
         mqtt_config = load_mqtt_config()
-        self.data_acq = MqqtSubscriber(
-            mqtt_config, self.publisher, self.brodcaster)
-        
-        return None
+        self.data_acq = MqqtSubscriber(mqtt_config, self.publisher)
+        self.data_acq.start_loop()
+
+        return [self.publisher.loop()]
     
 
 
 class TaskManager:
     def __init__(self):
         self.model: BaseMode = None
-        self.task: asyncio.Task = None
+        self.task_list: list[asyncio.Task] = None
         self.sockets: set[WebSocket] = set()
 
 
@@ -190,9 +187,10 @@ class TaskManager:
                 self.model = None
         
         if self.model is not None:
-            task = self.model.get_task()
-            if task is not None:
-                self.task = asyncio.create_task(task)
+            task_list = self.model.get_task()
+            if task_list is not None:
+                for task in task_list:
+                    self.task_list.append(asyncio.create_task(task))
 
         print("new task started")
 
@@ -201,12 +199,13 @@ class TaskManager:
         if self.model is not None:
             self.model.stop_task()
 
-        if self.task is not None:
-            self.task.cancel()
-            await asyncio.gather(self.task, return_exceptions=True)
+        if self.task_list is not None:
+            for task in self.task_list:
+                task.cancel()
+                await asyncio.gather(task, return_exceptions=True)
 
         self.model = None
-        self.task = None
+        self.task_list = []
 
 
     async def broadcast(self, msg: TransferData):
