@@ -52,17 +52,34 @@ class DecisionMaker:
 
     def _initialize_pins(self):
         self.relay_pins: list[DigitalOutputDevice] = []
-        for pin_name in self.config["relay_pins"]:
-            pin = DigitalOutputDevice(pin_name)
-            self.relay_pins.append(pin)
+        self._initialized = False
+        self._pins = {}
 
-        self.alarm_pin = DigitalOutputDevice(self.config["alarm_pin"])
+        try:
+            pins = self.config.relay_pins.split(";")
+            for pin_name in pins:
+                pin_name = pin_name.strip(" ")
+                pin = DigitalOutputDevice(pin_name)
+                self.relay_pins.append(pin)
+                self._pins[pin_name] = pin
+
+            self.alarm_pin = DigitalOutputDevice(self.config.alarm_pin)
+            self._pins[self.config.alarm_pin] = self.alarm_pin
+            self._initialized = True
+
+        except Exception as err:
+            print(f"Failed to initialize pins:\n{err}")
 
     
     def _clear_pins(self):
-        for pin in self.relay_pins:
-            pin.close()
-        self.alarm_pin.close()
+        for (key, pin) in self._pins.items():
+            try:
+                pin.off()
+                pin.close()
+            except Exception as err:
+                print(f"Failed to close pin {key}\n{err}")
+        
+        self._initialized = False
         
 
     def _set_relays(self, state: bool):
@@ -98,23 +115,23 @@ class DecisionMaker:
         The main logic of the class. It acts upon the received power value.
         """
 
-        if self.current_power < self.config["limit"] and not self.is_relay:
+        if self.current_power < self.config.limit and not self.is_relay:
             self.current_state = State.STANDBY
 
-        if self.current_power >= self.config["limit"]:
+        if self.current_power >= self.config.limit:
             self.current_state = State.RELAY_ON
 
-        if (self.current_power < self.config["lower_pow_limit"]
+        if (self.current_power < self.config.lower_pow_limit
              and self.is_relay):
             self.current_state = State.RELAY_TIMEOUT
 
-        if (self.current_power  >= self.config["limit"] and self.is_relay
-             and self.relay_on_time >= self.config["alarm_delay"]): 
+        if (self.current_power  >= self.config.limit and self.is_relay
+             and self.relay_on_time >= self.config.alarm_delay): 
             self.current_state = State.ALARM_ON
 
-        if (self.current_power >= self.config["limit"] and self.is_relay
+        if (self.current_power >= self.config.limit and self.is_relay
              and self.is_alarm 
-             and self.alarm_on_time >= self.config["alarm_on_time"]):
+             and self.alarm_on_time >= self.config.alarm_on_time):
             self.current_state = State.ALARM_TIMEOUT
        
         match self.current_state:
@@ -147,7 +164,7 @@ class DecisionMaker:
                 self.is_relay = True
                 self.is_alarm = False
                 # to bi moralo avtomatsko preiti v STANDBY
-                if self.relay_timeout_time > self.config["relay_timeout"]:
+                if self.relay_timeout_time > self.config.relay_timeout:
                     self.is_relay = False
                 # turn on relay
                 self._set_relays(True)
@@ -172,7 +189,7 @@ class DecisionMaker:
                 self.is_relay = True
                 self.is_alarm = True
                 # to bi moralo preiti nazaj v ALARM_ON
-                if self.alarm_on_time >= self.config["alarm_timeout"]:
+                if self.alarm_on_time >= self.config.alarm_timeout:
                     self.alarm_on_time = 0
                 # turn on relay
                 self._set_relays(True)
@@ -199,7 +216,7 @@ class DecisionMaker:
                 if self._is_updated:
                     self._is_updated = False
 
-                if t1 - self.last_update > self.config["connection_timeout"]:
+                if t1 - self.last_update > self.config.connection_timeout:
                     self.current_power = 0
 
                 self.data_logger.info(f"State: {self.current_state}")
@@ -220,6 +237,7 @@ class DecisionMaker:
             self._event.clear()
             self._thread.join()
             self._thread_status = False
+            self._clear_pins()
 
 
 
@@ -235,13 +253,14 @@ class SolarEdgeModbus:
 
     def __init__(self, config: ModbusConfig, 
                  publisher: Union["MqqtPublisher", DecisionMaker],
-                 broadcaster: Callable[[TransferData], None],
-                 acq_time: int = 30):
+                 broadcaster: Callable[[TransferData], None]):
         """
         config: dictionary from load_json function
         """
-        self.client = AsyncModbusTcpClient(config["ip"], port=config["port"], 
-                                      timeout = 0.1)
+        self.client = AsyncModbusTcpClient(config.ip, port=config.port, 
+                                      timeout = config.timeout)
+        self.config = config
+        self.acq_time = config.acq_time
         self.broadcaster = broadcaster
         self.grid_power = 0
         self.PV_power = 0
@@ -251,7 +270,6 @@ class SolarEdgeModbus:
         self.data_logger = logging.getLogger("data_logger")
 
         self.publisher = publisher
-        self.acq_time = acq_time
 
         self._event = asyncio.Event()
         self._lock = asyncio.Lock()
@@ -411,6 +429,7 @@ class SolarEdgeModbus:
         self._event.clear()
 
 
+
 class MqqtSubscriber:
     def __init__(self, 
                  config: MqttConfig, 
@@ -426,14 +445,14 @@ class MqqtSubscriber:
         self.client.on_message = self.on_message
         self.client.on_disconnect = self.on_disconnect
 
-        self.client.username_pw_set(username=self.config["username"], 
-                                    password=self.config["password"])
-        self.client.connect(self.config["broker_ip"], self.config["port"], 300)
+        self.client.username_pw_set(username=self.config.username, 
+                                    password=self.config.password)
+        self.client.connect(self.config.broker_ip, self.config.port, 300)
         self.client.reconnect_delay_set(min_delay=10, max_delay=60)
 
 
     def on_connect(self, client, userdata, flags, rc):
-        client.subscribe(self.config["topic"])
+        client.subscribe(self.config.topic)
         time.sleep(0.5)
         self.error_logger.info(f"Connected with result code {str(rc)}")
 
@@ -474,14 +493,14 @@ class MqqtPublisher:
         self.client.on_connect = self.on_connect
         self.client.on_disconnect = self.on_disconnect
 
-        self.client.username_pw_set(username=self.config["username"], 
-                                    password=self.config["password"])
-        self.client.connect(self.config["broker_ip"], self.config["port"], 300)
+        self.client.username_pw_set(username=self.config.username, 
+                                    password=self.config.password)
+        self.client.connect(self.config.broker_ip, self.config.port, 300)
         self.client.reconnect_delay_set(min_delay=10, max_delay=60)
 
 
     def on_connect(self, client, userdata, flags, rc):
-        client.subscribe(self.config["topic"])
+        client.subscribe(self.config.topic)
         self.error_logger.info(f"Connected with result code {str(rc)}")
 
 
@@ -491,7 +510,7 @@ class MqqtPublisher:
 
     def update_value(self, msg: str, qos: int=2, retain: bool=False):
         ret = self.client.publish(
-            self.config["topic"], payload=msg, qos=qos, retain=retain
+            self.config.topic, payload=msg, qos=qos, retain=retain
         )
         if ret.rc == mqtt.MQTT_ERR_SUCCESS:
             self.error_logger.info(f"Publisher sent: {msg}")

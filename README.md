@@ -9,6 +9,7 @@ The repository features three different use cases.
 Download the directory and run the following commands in a terminal:
 ```
 python -m venv .venv
+python3 -m venv --system-site-packages .venv
 
 source .venv/bin/activate
 
@@ -28,10 +29,10 @@ Now create a `systemmc` service:
 ```
 sudo nano /etc/systemd/system/solar_startup.service
 ```
-And put this inside:
+This is the service template. Make sure to correctly set the username for your PI setup.
 ```
 [Unit]
-Description=My Python Script Service
+Description=RPI Solar service
 After=network.target
 
 [Service]
