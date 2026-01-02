@@ -23,6 +23,7 @@ class SysConfig(BaseModel):
     alarm_pin: str = "J8:3"
     relay_pins: str = "J8:11; J8:13" # list of pins GPIO pins to use, separated by ;
     cycle_time: int = 5
+    invert_logic: bool = False
 
 
 

@@ -59,12 +59,17 @@ class DecisionMaker:
             pins = self.config.relay_pins.split(";")
             for pin_name in pins:
                 pin_name = pin_name.strip(" ")
-                pin = DigitalOutputDevice(pin_name)
+                pin = DigitalOutputDevice(
+                    pin_name, 
+                    active_high=not self.config.invert_logic,
+                    initial_value=False)
                 self.relay_pins.append(pin)
                 self._pins[pin_name] = pin
 
-            self.alarm_pin = DigitalOutputDevice(self.config.alarm_pin, 
-                                                 initial_value=False)
+            self.alarm_pin = DigitalOutputDevice(
+                self.config.alarm_pin, 
+                active_high=not self.config.invert_logic,
+                initial_value=False)
             self._pins[self.config.alarm_pin] = self.alarm_pin
             self._initialized = True
 
@@ -85,30 +90,32 @@ class DecisionMaker:
 
     def _set_relays(self, state: bool):
         """
-        The pin logic is inverted. To turn something on, pull the pin LOW.
-        The relays will be mostly set to off to prevent unnecessary heating.
-
-        :param state: turn on or off
+        Relay handler.
+        
+        :param state: True calls pin.on() and False calls pin.off(). The
+            output depends on config.invert_logic value.
+        :type state: bool
         """
         if state:
             for pin in self.relay_pins:
-                pin.off()
+                pin.on()
         else:
             for pin in self.relay_pins:
-                pin.on()
+                pin.off()
 
 
     def _set_alarm(self, state: bool):
         """
-        The pin logic is inverted. To turn something on, pull the pin LOW.
-        The relays will be mostly set to off to prevent unnecessary heating.
-
-        :param state: turn on or off
+        Alarm pin handler.
+        
+        :param state: True calls pin.on() and False calls pin.off(). The
+            output depends on config.invert_logic value.
+        :type state: bool
         """
         if state:
-            self.alarm_pin.off()
-        else:
             self.alarm_pin.on()
+        else:
+            self.alarm_pin.off()
 
 
     def _decision_loop(self):
@@ -143,7 +150,7 @@ class DecisionMaker:
                 self.is_relay = False
                 self.is_alarm = False
                 
-                # all relays off (pins go to HIGH)
+                # all relays off)
                 self._set_relays(False)
                 self._set_alarm(False)
 
@@ -212,6 +219,9 @@ class DecisionMaker:
 
 
     async def loop(self):
+        """
+        Async loop that should be used by the Task Manager.
+        """
         self._event.set()
 
         while self._event.is_set():

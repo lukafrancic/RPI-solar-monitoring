@@ -202,7 +202,7 @@ Diagram
     padding-right: 10px;
 }
 
-.form-row input,
+.form-row-input,
 .form-row select {
     flex: 2;
     padding: 5px 10px;
@@ -240,14 +240,14 @@ Diagram
 }
 
 /* Hide default HTML checkbox */
-.switch input {
+.switch-input {
   opacity: 0;
   width: 0;
   height: 0;
 }
 
 /* The slider */
-.slider {
+.switch .slider {
   position: absolute;
   cursor: pointer;
   top: 0;
@@ -259,7 +259,7 @@ Diagram
   transition: .4s;
 }
 
-.slider:before {
+.switch .slider:before {
   position: absolute;
   content: "";
   height: 26px;
@@ -271,25 +271,25 @@ Diagram
   transition: .4s;
 }
 
-input:checked + .slider {
+.switch-input:checked + .slider {
   background-color: #2196F3;
 }
 
-input:focus + .slider {
+.switch-input:focus + .slider {
   box-shadow: 0 0 1px #2196F3;
 }
 
-input:checked + .slider:before {
+.switch-input:checked + .slider:before {
   -webkit-transform: translateX(60px);
   -ms-transform: translateX(60px);
   transform: translateX(60px);
 }
 
 /* Rounded sliders */
-.slider.round {
+.switch .slider.round {
   border-radius: 34px;
 }
 
-.slider.round:before {
+.switch .slider.round:before {
   border-radius: 50%;
 } 

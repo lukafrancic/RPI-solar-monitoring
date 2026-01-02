@@ -69,7 +69,6 @@ async def update_config(data: lib.Config) -> None:
     :type data: lib.Config
     """
     print("Updating configs")
-    lib.update_config(data.sys)
     match data.sys.mode:
         case "Standalone":
             lib.update_config(data.sys)

@@ -168,7 +168,7 @@ function loadManual(config) {
             <label class="switch">
                 <input id="manual-label-${key}" 
                     type="checkbox" 
-                    class="manual-toggle"
+                    class="switch-input"
                     data-pin="${key}">
                 <span class="slider round"></span>
             </label>
@@ -190,9 +190,7 @@ async function sendConfig() {
     const sysContainer = document.getElementById("sys-config");
     var divs = sysContainer.querySelectorAll(".form-row");
     divs.forEach((element) => {
-        const divName = element.id.split("-");
-        const input = element.querySelector("input");
-        if (input && divName.length == 2) payload.sys[divName[1]] = input.value;
+        get_input_value(element, payload.sys);
     })
 
     payload.sys["mode"] = document.getElementById("RPI-select").value;
@@ -200,17 +198,13 @@ async function sendConfig() {
     const mqttContainer = document.getElementById("mqtt-config");
     var divs = mqttContainer.querySelectorAll(".form-row");
     divs.forEach((element) => {
-        const divName = element.id.split("-");
-        const input = element.querySelector("input");
-        if (input && divName.length == 2) payload.mqtt[divName[1]] = input.value;
+        get_input_value(element, payload.mqtt);
     })
 
     const modbusContainer = document.getElementById("modbus-config");
     var divs = modbusContainer.querySelectorAll(".form-row");
     divs.forEach((element) => {
-        const divName = element.id.split("-");
-        const input = element.querySelector("input");
-        if (input && divName.length == 2) payload.modbus[divName[1]] = input.value;
+        get_input_value(element, payload.modbus);
     })
 
     await postData("/config", payload);
@@ -223,6 +217,26 @@ async function sendConfig() {
     loadManual(payload.sys);
 }
 
+
+function get_input_value(element, data) {
+    const divName = element.id.split("-");
+    const input = element.querySelector("input");
+    if (!input || divName.length !== 2) return;
+
+    let value;
+    
+    switch (input.type) {
+        case "checkbox":
+            value = input.checked;
+            break;
+        case "number":
+            value = input.value === "" ? null : Number(input.value);
+            break;
+        default:
+            value = input.value;
+    }
+    data[divName[1]] = value;
+}
 
 
 ws.onmessage = function(event) {
@@ -241,7 +255,7 @@ ws.onmessage = function(event) {
 
 
 document.getElementById("manual-control").addEventListener("change", (event) => {
-    if (!event.target.matches(".manual-toggle")) return;
+    if (!event.target.matches(".switch-input")) return;
 
     const checkbox = event.target;
 

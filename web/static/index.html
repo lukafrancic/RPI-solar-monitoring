@@ -60,48 +60,48 @@
         <label class="title">System config</label>
         <div class="form-row hoverBox", id="config-limit">
             <label>Limit [W]:</label>
-            <input type="number" required min="0" max="100000"/>
+            <input class="form-row-input"  type="number" required min="0" max="100000"/>
             <div class="tooltip">Enter the desired power usage limit in Watts.</div>
         </div>
         <div class="form-row hoverBox", id="config-alarm_on_time">
             <label>Alarm on time [s]:</label>
-            <input type="number" required max="10000"/>
+            <input class="form-row-input"  type="number" required max="10000"/>
             <div class="tooltip">Enter the time limit the alarm stays on in seconds</div>
         </div>
         <div class="form-row hoverBox", id="config-alarm_timeout">
             <label>Alarm timeout [s]:</label>
-            <input type="number" required max="10000"/>
+            <input class="form-row-input"  type="number" required max="10000"/>
             <div class="tooltip">Enter the time delay before the alarm starts again.</div>
         </div>
         <div class="form-row hoverBox", id="config-alarm_delay">
             <label>Alarm delay [s]:</label>
-            <input type="number" required max="10000"/>
+            <input class="form-row-input"  type="number" required max="10000"/>
             <div class="tooltip">Enter the delay, before the alarm starts.</div>
         </div>
         <div class="form-row hoverBox", id="config-lower_pow_limit">
             <label>Power low limit [W]:</label>
-            <input type="number" required max="100000"/>
+            <input class="form-row-input"  type="number" required max="100000"/>
             <div class="tooltip">Relay timeout counter starts when the defined power limit is reached.</div>
         </div>
         <div class="form-row hoverBox", id="config-relay_timeout">
             <label>Relay timeout [s]:</label>
-            <input type="number" required max="10000"/>
+            <input class="form-row-input"  type="number" required max="10000"/>
             <div class="tooltip">Relays stay active for the defined time.</div>
         </div>
         <div class="form-row hoverBox", id="config-connection_timeout">
             <label>Connection timeout [s]:</label>
-            <input type="number" required max="10000"/>
+            <input class="form-row-input"  type="number" required max="10000"/>
             <div class="tooltip">All flags get restarted after the defined time if no active connection.</div>
         </div>
         <div class="form-row hoverBox", id="config-alarm_pin">
             <label>Alarm pin:</label>
-            <input type="text" required maxlength="20"/>
+            <input class="form-row-input"  type="text" required maxlength="20"/>
             <div class="tooltip">Enter the GPIO for the alarm.<br>
                 Example J8:3</div>
         </div>
         <div class="form-row hoverBox", id="config-relay_pins">
             <label>Relay pin:</label>
-            <input type="text" required maxlength="20"/>
+            <input class="form-row-input"  type="text" required maxlength="20"/>
             <div class="tooltip">Enter the GPIO for the relays. 
                 Multiple GPIO's can be set as the following example<br>
                 J8:11; J8:13
@@ -109,8 +109,18 @@
         </div>
         <div class="form-row hoverBox", id="config-cycle_time">
             <label>Cycle time:</label>
-            <input type="number" required max="1000"/>
+            <input class="form-row-input" type="number" required max="1000"/>
             <div class="tooltip">Enter the decision maker cycle time in seconds.</div>
+        </div>
+        <div class="form-row hoverBox", id="config-invert_logic">
+            <label for="invert-logic-button">Invert pin logic</label>
+            <label class="switch">
+                <input id="invert-logic-button" 
+                    type="checkbox" 
+                    class="switch-input">
+                <span class="slider round"></span>
+            </label>
+            <div class="tooltip">When set to active, the pins invert the output logic.</div>
         </div>
     </div>
     
@@ -119,22 +129,22 @@
         <label class="title">Modbus config</label>
         <div class="form-row hoverBox", id="modbus-ip">
             <label>IP:</label>
-            <input type="text" required maxlength="15"/>
+            <input class="form-row-input"  type="text" required maxlength="15"/>
             <div class="tooltip">Enter the inverter's IP address. Example 192.168.150.5</div>
         </div>
         <div class="form-row hoverBox", id="modbus-port">
             <label>Port:</label>
-            <input type="number" required max="99999"/>
+            <input class="form-row-input"  type="number" required max="99999"/>
             <div class="tooltip">Enter the inverter's port number. Example 1502</div>
         </div>
         <div class="form-row hoverBox", id="modbus-timeout">
             <label>Timeout:</label>
-            <input type="number" required max="1000"/>
+            <input class="form-row-input"  type="number" required max="1000"/>
             <div class="tooltip">Connection timeout between each data acquisition in seconds.</div>
         </div>
         <div class="form-row hoverBox", id="modbus-acq_time">
             <label>Acquisition time:</label>
-            <input type="number" required max="1000"/>
+            <input class="form-row-input"  type="number" required max="1000"/>
             <div class="tooltip">Enter the modbus acquisition time in seconds.</div>
         </div>
     </div>
@@ -144,27 +154,27 @@
         <label class="title">MQTT config</label>
         <div class="form-row hoverBox", id="mqtt-broker_ip">
             <label>Broker IP:</label>
-            <input type="text" required maxlength="15"/>
+            <input class="form-row-input"  type="text" required maxlength="15"/>
             <div class="tooltip">Enter the broker's IP address. Example 192.168.150.5</div>
         </div>
         <div class="form-row hoverBox", id="mqtt-port">
             <label>Port:</label>
-            <input type="number" required max="40000"/>
+            <inpu class="form-row-input"  type="number" required max="40000"/>
             <div class="tooltip">Enter the broker's port.</div>
         </div>
         <div class="form-row hoverBox", id="mqtt-username">
             <label>Username:</label>
-            <input type="text" required maxlength="20"/>
+            <input class="form-row-input"  type="text" required maxlength="20"/>
             <div class="tooltip">Enter the brokers's username.</div>
         </div>
         <div class="form-row hoverBox", id="mqtt-password">
             <label>Password:</label>
-            <input type="text" required maxlength="20">
+            <input class="form-row-input"  type="text" required maxlength="20">
             <div class="tooltip">Enter the broker's password.</div>
         </div>
         <div class="form-row hoverBox", id="mqtt-topic">
             <label>Topic:</label>
-            <input type="text" required maxlength="15"/>
+            <input class="form-row-input"  type="text" required maxlength="15"/>
             <div class="tooltip">Enter the MQTT topic. Leave this set to "Power"</div>
         </div>
     </div>

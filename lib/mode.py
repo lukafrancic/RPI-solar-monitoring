@@ -74,11 +74,16 @@ class Simulator(BaseMode):
             pins = self._config.relay_pins.split(";")
             for pin in pins:
                 pin = pin.strip(" ")
-                self._pins[pin] = DigitalOutputDevice(pin, initial_value=False)
+                self._pins[pin] = DigitalOutputDevice(
+                    pin, 
+                    active_high = not self._config.invert_logic,
+                    initial_value = False)
             
             alarm_pin = self._config.alarm_pin
-            self._pins[alarm_pin] = DigitalOutputDevice(alarm_pin, 
-                                                        initial_value=False)
+            self._pins[alarm_pin] = DigitalOutputDevice(
+                alarm_pin, 
+                active_high = not self._config.invert_logic,
+                initial_value = False)
 
             self._initialized = True
 
