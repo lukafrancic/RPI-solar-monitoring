@@ -63,7 +63,8 @@ class DecisionMaker:
                 self.relay_pins.append(pin)
                 self._pins[pin_name] = pin
 
-            self.alarm_pin = DigitalOutputDevice(self.config.alarm_pin)
+            self.alarm_pin = DigitalOutputDevice(self.config.alarm_pin, 
+                                                 initial_value=False)
             self._pins[self.config.alarm_pin] = self.alarm_pin
             self._initialized = True
 
@@ -196,7 +197,8 @@ class DecisionMaker:
                 # turn off alarm
                 self._set_alarm(False)
             case _:
-                pass
+                self._set_relays(False)
+                self._set_alarm(False)
     
 
     def update_value(self, data: TransferData):
