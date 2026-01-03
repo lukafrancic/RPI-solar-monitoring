@@ -105,6 +105,15 @@ async def websocket_endpoint(websocket: WebSocket):
 
 
 
+@app.post("/shutdown")
+async def shutdownDevice():
+    try:
+        os.system("sudo shutdown -h now")
+    except Exception as err:
+        print(f"Failed to shutdown device\n{err}")
+        
+
+
 
 
 

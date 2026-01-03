@@ -74,13 +74,19 @@ document.getElementById("RPI-select").addEventListener(
 
 async function postData(url, data) {
   try {
-    const res = await fetch(url, {
-      method: "POST",
-      headers: {"Content-Type": "application/json"},
-      body: JSON.stringify(data)
-    });
+    if (data) {
+        const res = await fetch(url, {
+            method: "POST",
+            headers: {"Content-Type": "application/json"},
+            body: JSON.stringify(data)
+        });
+    } else {
+        const res = await fetch(url, {
+            method: "POST"
+        });
+    }
   } catch (err) {
-    alert("Error in POST ${url}:'", err);
+    alert(`Error in POST ${url}: ${err}`);
   }
 }
 
@@ -267,6 +273,11 @@ document.getElementById("manual-control").addEventListener("change", (event) => 
     ws.send(JSON.stringify(payload));
     console.log(payload);
 });
+
+
+async function shutdownDevice(){
+    await postData("/shutdown", null);
+}
 
 
 loadConfig();

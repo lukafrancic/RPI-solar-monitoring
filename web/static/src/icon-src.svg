@@ -23,12 +23,12 @@
      inkscape:pagecheckerboard="0"
      inkscape:deskcolor="#d1d1d1"
      inkscape:document-units="mm"
-     inkscape:zoom="1.4627806"
-     inkscape:cx="-204.06341"
-     inkscape:cy="649.10624"
+     inkscape:zoom="1.0343421"
+     inkscape:cx="-258.6185"
+     inkscape:cy="569.9275"
      inkscape:window-width="1920"
      inkscape:window-height="1017"
-     inkscape:window-x="1912"
+     inkscape:window-x="-8"
      inkscape:window-y="-8"
      inkscape:window-maximized="1"
      inkscape:current-layer="layer1" />
@@ -563,12 +563,14 @@
            id="path40" />
         <path
            style="opacity:0.957179;fill:none;fill-opacity:1;stroke:#000000;stroke-width:2;stroke-linecap:round;stroke-dasharray:none;stroke-opacity:1"
-           d="m -35.813642,71.627282 -10.031426,8.862973 9.940988,0.09044 -9.940988,8.320339 9.855938,0.09955"
-           id="path41" />
+           d="m -36.175396,71.898597 -9.669672,8.591658 9.940988,0.09044 -9.940988,8.320339 9.855938,0.09955"
+           id="path41"
+           sodipodi:nodetypes="ccccc" />
         <path
            style="opacity:0.957179;fill:none;fill-opacity:1;stroke:#000000;stroke-width:2;stroke-linecap:round;stroke-dasharray:none;stroke-opacity:1"
-           d="m -25.322777,71.627282 8.622683,8.686649 -8.333796,0.268833 8.333796,8.318267 -8.080052,-0.452189 -11.123934,-7.868147 z"
-           id="path42" />
+           d="m -25.413215,72.169913 8.713121,8.144018 -8.333796,0.268833 8.333796,8.318267 -8.080052,-0.452189 -11.123934,-7.868147 z"
+           id="path42"
+           sodipodi:nodetypes="ccccccc" />
         <path
            style="opacity:0.957179;fill:none;fill-opacity:1;stroke:#000000;stroke-width:2;stroke-linecap:round;stroke-dasharray:none;stroke-opacity:1"
            d="m -25.03389,80.582764 -10.87019,-0.0021"
@@ -576,8 +578,9 @@
            sodipodi:nodetypes="cc" />
         <path
            style="opacity:0.957179;fill:none;fill-opacity:1;stroke:#000000;stroke-width:2;stroke-linecap:round;stroke-dasharray:none;stroke-opacity:1"
-           d="m -35.994519,89.534105 11.214373,-1.085263 -14.92235,9.224724 17.725943,-0.361757 -21.433922,8.501221"
-           id="path44" />
+           d="m -35.994519,89.534105 9.857796,-0.180878 -11.214372,7.868147 15.374542,0.09043 -21.433922,8.501221"
+           id="path44"
+           sodipodi:nodetypes="ccccc" />
       </g>
     </g>
     <g
