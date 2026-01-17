@@ -276,7 +276,9 @@ document.getElementById("manual-control").addEventListener("change", (event) => 
 
 
 async function shutdownDevice(){
-    await postData("/shutdown", null);
+    if (window.confirm("Do you really want to shutdown the device?")) {
+        await postData("/shutdown", null);
+    }
 }
 
 
