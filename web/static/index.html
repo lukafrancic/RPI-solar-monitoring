@@ -60,10 +60,35 @@
 
     <div class="config-setup", id="sys-config">
         <label class="title">System config</label>
-        <div class="form-row hoverBox", id="config-limit">
-            <label>Limit [W]:</label>
+        <div class="form-row hoverBox", id="config-limit_1">
+            <label>Limit 1 [W]:</label>
             <input class="form-row-input"  type="number" required min="0" max="100000"/>
-            <div class="tooltip">Enter the desired power usage limit in Watts.</div>
+            <div class="tooltip">Enter the desired power usage limit in Watts in Block 1</div>
+        </div>
+        <div class="form-row hoverBox", id="config-limit_2">
+            <label>Limit 2 [W]:</label>
+            <input class="form-row-input"  type="number" required min="0" max="100000"/>
+            <div class="tooltip">Enter the desired power usage limit in Watts in Block 2</div>
+        </div>
+        <div class="form-row hoverBox", id="config-limit_3">
+            <label>Limit 3 [W]:</label>
+            <input class="form-row-input"  type="number" required min="0" max="100000"/>
+            <div class="tooltip">Enter the desired power usage limit in Watts in Block 3</div>
+        </div>
+        <div class="form-row hoverBox", id="config-limit_4">
+            <label>Limit 4 [W]:</label>
+            <input class="form-row-input"  type="number" required min="0" max="100000"/>
+            <div class="tooltip">Enter the desired power usage limit in Watts in Block 4</div>
+        </div>
+        <div class="form-row hoverBox", id="config-limit_5">
+            <label>Limit 5 [W]:</label>
+            <input class="form-row-input"  type="number" required min="0" max="100000"/>
+            <div class="tooltip">Enter the desired power usage limit in Watts in Block 5</div>
+        </div>
+        <div class="form-row hoverBox", id="config-limit_diff">
+            <label>Power low limit [W]:</label>
+            <input class="form-row-input"  type="number" required max="100000"/>
+            <div class="tooltip">Relay timeout counter starts when power &lt limit - limit_diff</div>
         </div>
         <div class="form-row hoverBox", id="config-alarm_on_time">
             <label>Alarm on time [s]:</label>
@@ -79,11 +104,6 @@
             <label>Alarm delay [s]:</label>
             <input class="form-row-input"  type="number" required max="10000"/>
             <div class="tooltip">Enter the delay, before the alarm starts.</div>
-        </div>
-        <div class="form-row hoverBox", id="config-lower_pow_limit">
-            <label>Power low limit [W]:</label>
-            <input class="form-row-input"  type="number" required max="100000"/>
-            <div class="tooltip">Relay timeout counter starts when the defined power limit is reached.</div>
         </div>
         <div class="form-row hoverBox", id="config-relay_timeout">
             <label>Relay timeout [s]:</label>

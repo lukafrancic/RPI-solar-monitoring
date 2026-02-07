@@ -12,6 +12,81 @@ from lib.utils import *
 
 
 
+class TimeBlock:
+
+    TIME_ZONE = (
+        (0, 6),
+        (6, 7),
+        (7, 14),
+        (14, 16),
+        (16, 20),
+        (20, 22),
+        (22, 24)
+    )
+
+    BLOCK = {
+        1: (3, 2, 1, 2, 1, 2, 3), # Visja sezona delovni dan
+        2: (4, 3, 2, 3, 2, 3, 4), # visja sezona dela prost dan
+        3: (4, 3, 2, 3, 2, 3, 4), # nizja sezona delovni dan
+        4: (5, 4, 3, 4, 3, 4, 5)  # nizja sezona dela prost dan
+    }
+
+    MONTHS = {
+        1: ("H", (1, 2)), # novo leto
+        2: ("H", (8,)), # presernov dan
+        3: ("L", ()), 
+        4: ("L", (27,)), # dan upora
+        5: ("L", (1, 2)), # prvi maj
+        6: ("L", (25,)), # dan drzavnosti
+        7: ("L", ()),
+        8: ("L", (15,)), # Marijino vnebozetje
+        9: ("L", ()),
+        10: ("L", (31,)), # dan reformacije
+        11: ("H", (1,)), # dan spomina na mrtve
+        12: ("H", (25, 26)) # bozic, dan samostojnosti
+    }
+
+
+    def __init__(self):
+        self._prev_hour = -1
+        self.ctime = time.time()
+        self.ltime = time.localtime(self.ctime)
+
+
+    def get_time_block(self) -> int:
+        
+        season, holiday = self.MONTHS[self.ltime.tm_mon]
+
+        z_id = 0
+        for i, zone in enumerate(self.TIME_ZONE):
+            if zone[0] <= self.ltime.tm_hour and zone[1] > self.ltime.tm_hour:
+                z_id = i
+                break
+        
+        block_id = 0
+        if self.ltime.tm_mday in holiday[1] or (
+            self.ltime.tm_wday == 5 or self.ltime.tm_wday == 6):
+            block_id = 1
+
+        if season == "L":
+            block_id += 2
+
+        self._prev_hour = self.ltime.tm_hour
+
+        return self.BLOCK[block_id[z_id]]
+
+
+    def update_needed(self) -> bool:
+        self.ctime = time.time()
+        self.ltime = time.localtime(self.ctime)
+
+        if self._prev_hour == self.ltime.tm_hour:
+            return False
+        
+        return True
+    
+
+
 class DecisionMaker:
     """
     A class that runs the relay/alarm logic based on config settings and
@@ -25,6 +100,15 @@ class DecisionMaker:
             acq_time: time step that will be used within the loop
         """
         self.config = config
+        self._pow_high = self.config.limit_1
+        self._pow_low = self.config.limit_1 - self.config.limit_diff
+        self._pow_list = (
+            self.config.limit_1, 
+            self.config.limit_2, 
+            self.config.limit_3, 
+            self.config.limit_4, 
+            self.config.limit_5
+        )
         self.broadcaster = broadcaster
         self.current_time = time.monotonic()
         self.acq_time = config.cycle_time
@@ -33,6 +117,7 @@ class DecisionMaker:
         self._current_data = TransferData()
 
         self.data_logger = logging.getLogger("data_logger")
+        self.tb = TimeBlock()
 
         # trackers
         self.current_state = State.STANDBY
@@ -123,21 +208,21 @@ class DecisionMaker:
         The main logic of the class. It acts upon the received power value.
         """
 
-        if self.current_power < self.config.limit and not self.is_relay:
+        if self.current_power < self._pow_high and not self.is_relay:
             self.current_state = State.STANDBY
 
-        if self.current_power >= self.config.limit:
+        if self.current_power >= self._pow_high:
             self.current_state = State.RELAY_ON
 
-        if (self.current_power < self.config.lower_pow_limit
+        if (self.current_power < self._pow_low
              and self.is_relay):
             self.current_state = State.RELAY_TIMEOUT
 
-        if (self.current_power  >= self.config.limit and self.is_relay
+        if (self.current_power  >= self._pow_high and self.is_relay
              and self.relay_on_time >= self.config.alarm_delay): 
             self.current_state = State.ALARM_ON
 
-        if (self.current_power >= self.config.limit and self.is_relay
+        if (self.current_power >= self._pow_high and self.is_relay
              and self.is_alarm 
              and self.alarm_on_time >= self.config.alarm_on_time):
             self.current_state = State.ALARM_TIMEOUT
@@ -226,6 +311,12 @@ class DecisionMaker:
 
         while self._event.is_set():
             t1 = time.monotonic()
+
+            if self.tb.update_needed():
+                block_id = self.tb.get_time_block()
+                self._pow_high = self._pow_list[block_id-1]
+                self._pow_low = self._pow_high - self.config.limit_diff
+
             async with self._lock:
                 self._decision_loop()
 
@@ -316,20 +407,15 @@ class SolarEdgeModbus:
             is_connected = False
 
         if is_connected:
-            # locena funkcija za branje, nvm kako to bolj pametno naredit...
-            # moramo brati skupaj, ker drugace na neki tocki zamenja vrstni
-            # red branja registrov
             PV = await self._read_PV_power_value()
-            # await asyncio.sleep(1)
             GRID = await self._read_GRID_power_value()
 
             if PV is not None and GRID is not None:
                 self.grid_power = GRID
                 self.PV_power = PV
-                if GRID >= 0:
-                    self.current_load = PV - GRID
-                else:
-                    self.current_load = PV + GRID
+                # if we take from grid -> we get negative value
+                # if we return to grid -> we get positive value
+                self.current_load = PV - GRID
                 
                 # power levels are in watts
                 self.data_logger.info(
@@ -537,5 +623,4 @@ class MqqtPublisher:
     def stop(self):
         self.client.loop_stop()
         self.client.disconnect()
-
 

@@ -13,17 +13,21 @@ CONFIG_DIR = Path(__file__).resolve().parents[1] / "config"
 
 class SysConfig(BaseModel):
     mode: str = "Simulator" # RPI-setup
-    limit : int = 5000 # alarm goes up when this limit is passed
-    alarm_on_time : int = 15 # alarm stays on for N seconds
-    alarm_timeout : int = 60 # alarm starts again after N seconds
-    alarm_delay : int = 40   # turn on the alarm is power is still too high N seconds after relay on time
-    lower_pow_limit : int = 4000 # relay switches back when the power goes lower
-    relay_timeout : int = 300 # relays switch after N seconds after going bellow lower lim    
-    connection_timeout: int = 300 # After N seconds the load value resets to 0 in DecisionMaker
     alarm_pin: str = "J8:3"
     relay_pins: str = "J8:11; J8:13" # list of pins GPIO pins to use, separated by ;
     cycle_time: int = 5
     invert_logic: bool = False
+    connection_timeout: int = 300 # After N seconds the load value resets to 0 in DecisionMaker
+    relay_timeout : int = 300 # relays switch after N seconds after going bellow lower lim    
+    alarm_on_time : int = 15 # alarm stays on for N seconds
+    alarm_timeout : int = 60 # alarm starts again after N seconds
+    alarm_delay : int = 40   # turn on the alarm is power is still too high N seconds after relay on time
+    limit_diff : int = 4000 # relay switches back when the power goes lower
+    limit_1 : int = 5000 # alarm goes up when this limit is passed
+    limit_2 : int = 5000 # alarm goes up when this limit is passed
+    limit_3 : int = 5000 # alarm goes up when this limit is passed
+    limit_4 : int = 5000 # alarm goes up when this limit is passed
+    limit_5 : int = 5000 # alarm goes up when this limit is passed
 
 
 
