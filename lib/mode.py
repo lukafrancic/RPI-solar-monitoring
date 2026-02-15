@@ -201,7 +201,7 @@ class TaskManager:
                 for task in task_list:
                     t = asyncio.create_task(task)
                     t.add_done_callback(self._crash_on_error)
-                    self.task_list.append()
+                    self.task_list.append(t)
 
         print("new task started")
 
