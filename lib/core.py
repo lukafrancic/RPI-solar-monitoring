@@ -121,12 +121,7 @@ class DecisionMaker:
 
         # trackers
         self.current_state = State.STANDBY
-        self.is_relay = False
-        self.relay_on_time = 0
-        self.relay_timeout_time = 0
-        self.is_alarm = False
-        self.alarm_on_time = 0
-        self.alarm_timeout_time = 0
+        self._timer = 0
 
         self._lock = asyncio.Lock()
         self._is_updated = False
@@ -207,90 +202,71 @@ class DecisionMaker:
         """
         The main logic of the class. It acts upon the received power value.
         """
-
-        if self.current_power < self._pow_high and not self.is_relay:
-            self.current_state = State.STANDBY
-
-        if self.current_power >= self._pow_high:
-            self.current_state = State.RELAY_ON
-
-        if (self.current_power < self._pow_low
-             and self.is_relay):
-            self.current_state = State.RELAY_TIMEOUT
-
-        if (self.current_power  >= self._pow_high and self.is_relay
-             and self.relay_on_time >= self.config.alarm_delay): 
-            self.current_state = State.ALARM_ON
-
-        if (self.current_power >= self._pow_high and self.is_relay
-             and self.is_alarm 
-             and self.alarm_on_time >= self.config.alarm_on_time):
-            self.current_state = State.ALARM_TIMEOUT
+        self._timer += self.acq_time
        
         match self.current_state:
             case State.STANDBY:
-                self.relay_timeout_time = 0
-                self.relay_on_time = 0
-                self.alarm_on_time = 0
-                self.is_relay = False
-                self.is_alarm = False
+                if self.current_power >= self._pow_high:
+                    self.current_state = State.RELAY_ON
                 
-                # all relays off)
+                self._timer = 0
                 self._set_relays(False)
                 self._set_alarm(False)
 
             case State.RELAY_ON:
-                self.relay_on_time += self.acq_time
-                self.alarm_on_time = 0
-                self.relay_timeout_time = 0
-                self.is_relay = True
-                self.is_alarm = False
-                # turn on relay
+                if self.current_power >= self._pow_high and (
+                    self._timer > self.config.alarm_delay):
+                    self.current_state = State.ALARM_ON
+                    self._timer = 0
+
+                if self.current_power < self._pow_low:
+                    self.current_state = State.RELAY_TIMEOUT
+                    self._timer = 0
+
                 self._set_relays(True)
-                # turn on alarm
                 self._set_alarm(False)
 
             case State.RELAY_TIMEOUT:
-                self.relay_timeout_time += self.acq_time
-                self.relay_on_time += self.acq_time
-                self.alarm_on_time = 0
-                self.is_relay = True
-                self.is_alarm = False
-                # to bi moralo avtomatsko preiti v STANDBY
-                if self.relay_timeout_time > self.config.relay_timeout:
-                    self.is_relay = False
-                # turn on relay
+                if self.current_power >= self._pow_low:
+                    self.current_state = State.RELAY_ON
+                    self._timer = 0
+
+                if self._timer >= self.config.relay_timeout:
+                    self.current_state = State.STANDBY
+                    self._timer = 0
+
                 self._set_relays(True)
-                # turn off alarm
                 self._set_alarm(False)
 
             case State.ALARM_ON:
-                self.relay_on_time += self.acq_time
-                self.alarm_on_time += self.acq_time
-                self.relay_timeout_time = 0
-                self.is_relay = True
-                self.is_alarm = True
-                # turn on relay
+                if self.current_power < self._pow_high:
+                    self.current_state = State.RELAY_ON
+                    self._timer = 0
+
+                if self._timer >= self.config.alarm_on_time:
+                    self.current_state = State.ALARM_TIMEOUT
+                    self._timer = 0
+                
                 self._set_relays(True)
-                # turn on alarm
                 self._set_alarm(True)
 
             case State.ALARM_TIMEOUT:
-                self.relay_on_time += self.acq_time
-                self.alarm_on_time += self.acq_time
-                self.relay_timeout_time = 0
-                self.is_relay = True
-                self.is_alarm = True
-                # to bi moralo preiti nazaj v ALARM_ON
-                if self.alarm_on_time >= self.config.alarm_timeout:
-                    self.alarm_on_time = 0
-                # turn on relay
+                if self.current_power < self._pow_high:
+                    self.current_state = State.RELAY_ON
+                    self._timer = 0
+
+                if self._timer >= self.config.alarm_timeout:
+                    self.current_state = State.ALARM_ON
+                    self._timer = 0
+
                 self._set_relays(True)
-                # turn off alarm
                 self._set_alarm(False)
+
             case _:
                 self._set_relays(False)
                 self._set_alarm(False)
+                self.current_state = State.STANDBY
+                self._timer = 0
     
 
     def update_value(self, data: TransferData):
