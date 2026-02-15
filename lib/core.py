@@ -25,10 +25,10 @@ class TimeBlock:
     )
 
     BLOCK = {
-        1: (3, 2, 1, 2, 1, 2, 3), # Visja sezona delovni dan
-        2: (4, 3, 2, 3, 2, 3, 4), # visja sezona dela prost dan
-        3: (4, 3, 2, 3, 2, 3, 4), # nizja sezona delovni dan
-        4: (5, 4, 3, 4, 3, 4, 5)  # nizja sezona dela prost dan
+        0: (3, 2, 1, 2, 1, 2, 3), # Visja sezona delovni dan
+        1: (4, 3, 2, 3, 2, 3, 4), # visja sezona dela prost dan
+        2: (4, 3, 2, 3, 2, 3, 4), # nizja sezona delovni dan
+        3: (5, 4, 3, 4, 3, 4, 5)  # nizja sezona dela prost dan
     }
 
     MONTHS = {
@@ -64,7 +64,7 @@ class TimeBlock:
                 break
         
         block_id = 0
-        if self.ltime.tm_mday in holiday[1] or (
+        if self.ltime.tm_mday in holiday or (
             self.ltime.tm_wday == 5 or self.ltime.tm_wday == 6):
             block_id = 1
 
@@ -73,7 +73,7 @@ class TimeBlock:
 
         self._prev_hour = self.ltime.tm_hour
 
-        return self.BLOCK[block_id[z_id]]
+        return self.BLOCK[block_id][z_id]
 
 
     def update_needed(self) -> bool:
@@ -84,7 +84,7 @@ class TimeBlock:
             return False
         
         return True
-    
+
 
 
 class DecisionMaker:

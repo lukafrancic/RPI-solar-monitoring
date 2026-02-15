@@ -8,6 +8,9 @@ from gpiozero import DigitalOutputDevice
 from lib.core import DecisionMaker, SolarEdgeModbus, MqqtPublisher, MqqtSubscriber
 from lib.utils import *
 
+import traceback
+import sys
+
 
 class BaseMode:
     def __init__(self, broadcaster: Callable[[TransferData], None]):
@@ -196,9 +199,24 @@ class TaskManager:
             task_list = self.model.get_task()
             if task_list is not None:
                 for task in task_list:
-                    self.task_list.append(asyncio.create_task(task))
+                    t = asyncio.create_task(task)
+                    t.add_done_callback(self._crash_on_error)
+                    self.task_list.append()
 
         print("new task started")
+
+
+    def _crash_on_error(self, task: asyncio.Task):
+        """Callback to force the whole program to exit on any task failure."""
+        try:
+            task.result()
+        except asyncio.CancelledError:
+            pass  # Normal cancellation
+        except Exception as err:
+            logging.error(f"Task crashed!\n{err}")
+            traceback.print_exc()
+            # fatal crash in case of error. Imamo daemon z auto restart
+            sys.exit(1)
 
 
     async def cancel_task(self):
@@ -208,7 +226,8 @@ class TaskManager:
         if self.task_list is not None:
             for task in self.task_list:
                 task.cancel()
-                await asyncio.gather(task, return_exceptions=True)
+                # return_exceptions = False to prevent silent task crashes!
+                await asyncio.gather(task, return_exceptions=False)
 
         self.model = None
         self.task_list = []
@@ -222,9 +241,11 @@ class TaskManager:
                 await ws.send_json(msg.model_dump())
             except:
                 dead.append(ws)
+                print("Broadcast crashed")
 
         for ws in dead:
             self.sockets.discard(ws)
+            print("Broadcast cleared ws")
 
 
     async def manage_msg(self, msg: str):
