@@ -29,6 +29,7 @@ async def lifespan(app: FastAPI):
         print("task started")
     except Exception as error:
         print(error)
+        sys.exit(1)
 
     yield
 
@@ -99,9 +100,9 @@ async def websocket_endpoint(websocket: WebSocket):
             data = await websocket.receive_text()
             print(data)
             await task.manage_msg(data)
-    except:
+    except Exception as err:
         task.remove_socket(websocket)
-        print("Websocket failed")
+        print(f"Websocket failed\n{err}")
 
 
 

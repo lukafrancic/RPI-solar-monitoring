@@ -7,6 +7,7 @@ from typing import Union
 import paho.mqtt.client as mqtt
 from gpiozero import DigitalOutputDevice
 from collections.abc import Callable
+import sys
 
 from lib.utils import *
 
@@ -349,6 +350,8 @@ class SolarEdgeModbus:
 
         self._event = asyncio.Event()
         self._lock = asyncio.Lock()
+        self._error_counter = 0
+        self._prev_error = False
 
         
     async def _read_register(self, address: int, count: int = 1) -> list[int]:
@@ -361,12 +364,13 @@ class SolarEdgeModbus:
         ret = None
         try:
             ret = await self.client.read_holding_registers(address, count=count)
-        except:
-            self.error_logger.exception("Read register error")
-
-        if ret != None:
-            return ret.registers
-        
+            
+            if ret != None and not ret.isError():
+                return ret.registers
+            
+        except Exception as err:
+            self.error_logger.exception(f"Read register error\n{err}")
+            
         return []
 
 
@@ -378,12 +382,15 @@ class SolarEdgeModbus:
 
         try:
             is_connected = await self.client.connect()
-        except:
-            self.error_logger.exception("Failed to connect")
+        except Exception as err:
+            self.error_logger.exception(f"Failed to connect\n{err}")
             is_connected = False
+
+        await asyncio.sleep(0.3)
 
         if is_connected:
             PV = await self._read_PV_power_value()
+            await asyncio.sleep(0.2)
             GRID = await self._read_GRID_power_value()
 
             if PV is not None and GRID is not None:
@@ -396,24 +403,28 @@ class SolarEdgeModbus:
                 # power levels are in watts
                 self.data_logger.info(
                     f"{self.PV_power}\t{self.grid_power}\t{self.current_load}")
-                
+                self._error_counter = 0
+                                
             else:
                 self.grid_power = 0
                 self.PV_power = 0
                 self.current_load = 0
                 self.error_logger.warning("No logged values")
-            
-            # self.error_logger.info(f"Load: {self.current_load} W")
+                self._error_counter += 1
+         
         else:
             self.grid_power = 0
             self.PV_power = 0
             self.current_load = 0
             self.error_logger.warning("No modbus connection")
 
-        # self.publisher.update_value(-self.grid_power)
+            self._error_counter += 1
+
         self.client.close()
 
-        # return (self.PV_power, self.grid_power, self.current_load)
+        if self._error_counter > 10:
+            self.error_logger.info(f"Restarting system")
+            sys.exit(1)
      
     
     async def _read_PV_power_value(self) -> int | None:
@@ -464,7 +475,7 @@ class SolarEdgeModbus:
             return int(val * 10**pval)
         else:
             self.error_logger.warning(f"pval is too big: {pval} at " \
-                                 f"{self.GRID_POWER} -> {ret[0]}, {ret[0]}")
+                                 f"{self.GRID_POWER} -> {ret[0]}, {ret[4]}")
             return
 
 
